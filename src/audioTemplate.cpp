@@ -11,20 +11,21 @@
 #include "al/app/al_ConsoleDomain.hpp"
 #include "al/graphics/al_Shapes.hpp"
 #include "al/system/al_Time.hpp"
-
-#include "Gamma/Oscillator.h"
-
 using namespace al;
 
-class MyAudioApp {
+#include "../Gimmel/include/Gimmel.hpp"
+
+class audioTemplate {
 public:
-  // The app will run an "AudioDomain"
+  // instantiate domains
   AudioDomain audioDomain;
   ConsoleDomain consoleDomain;
   
-  gam::Sine<> mOsc{110};
+  // instantiate audio objects
+  giml::Chorus<float> chorus{48000};
 
-  float gain = 0.5f;
+  // instantiate app variables
+  float gain = 1.f;
   float maxAmp = 0.f;
 
   // Configure function
@@ -32,23 +33,35 @@ public:
     audioDomain.configure(sampleRate, blockSize, audioOutputs, audioInputs);
   }
 
-  // This start function starts the audio domain, waits for 3 seconds and
-  // then exits
+  // This start function starts the audio domain, 
+  // waits for 3 seconds and then exits
   void start() {
     audioDomain.init();
     consoleDomain.init();
+
+    // configure effect parameters at startup 
+    // ^ move to configure function?
+    this->chorus.enable();
+    this->chorus.setRate(0.185f);
+    this->chorus.setDepth(10.f);
+
     // Set audio callback through a lambda
     audioDomain.onSound = [this](AudioIOData &io) {
       while (io()) {
-	      float output = mOsc() * this->gain;
-	
+
+        // calculate output sample
+	      float output = this->chorus.processSample(io.in(0)) * this->gain;
+
+        // update maxAmp
 	      if (output > this->maxAmp) {
 	        this->maxAmp = output;
 	      }
 
+        // write 'output' to all channels
 	      for (int channel = 0; channel < io.channelsOut(); channel++) {
           io.out(channel) = output;
         }
+
       }
     };
 
@@ -57,16 +70,13 @@ public:
         return false;
       } else {
         std::cout << "Max Amp:" << this->maxAmp << std::endl;
-	      mOsc.freq(std::stof(line));
-	      //std::cout << "Dev: " << this->audioDomain.audioIO().print() << std::endl;
       }
       return true;
     };
-    // Set sample rate of Gamma from rate configured in audio domain
-    // al::App will do this for you automatically, but you have to do it
-    // manually
-    gam::sampleRate(audioDomain.audioIO().framesPerSecond());
+
+    // print info about your audio device
     audioDomain.audioIO().print();
+
     // start audio domain. This domain is non blocking, so we will keep the
     // application alive by starting the console domain
     audioDomain.start();
@@ -83,10 +93,8 @@ public:
 };
 
 int main() {
-  MyAudioApp app;
-
+  audioTemplate app;
   app.configure(48000, 128, 2, 2);
   app.start();
-  
   return 0;
 }

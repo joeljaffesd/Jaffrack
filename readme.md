@@ -11,7 +11,6 @@ Jaffrack is designed for embedded platforms, and prototyped using the [Raspberry
 By delegating audio and graphics to separate devices, computers optimized for each task can be used. They can communicate information between eachother using [Cuttlebone](https://github.com/kybr/cuttlebone), a POSIX networking framework optimized for ephermeral data.
 
 ## TO-DO:
-- Integrate [Gimmel](https://github.com/Mahdi03/Gimmel) as a Git submodule
 - Investigate [Cuttlefish](https://github.com/systemics/cuttlefish) and [br](https://github.com/kybr/br)
 - Investigate [al::Parameter](https://github.com/AlloSphere-Research-Group/allolib/blob/master/include/al/ui/al_Parameter.hpp) callbacks
 - Prototype audio parameter broadcast from graphics apps 
