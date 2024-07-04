@@ -4,6 +4,9 @@
 // based on allolib/examples/app/audioApp.cpp, 
 // written by Andres Cabrera https://github.com/mantaraya36
 
+#ifndef AUDIO_TEMPLATE_HPP
+#define AUDIO_TEMPLATE_HPP
+
 #include <iostream>
 #include <memory>
 
@@ -23,25 +26,23 @@ struct audioTemplate {
   // buffer size, channels in and channels out
   int sampleRate;
   int blockSize;
-  int channelsIn;
   int channelsOut;
+  int channelsIn;
 
-  // Configure function
-  inline virtual void configure(double sampleRate, int blockSize, int audioOutputs, int audioInputs) {
-    // configure startup parameters
-    audioDomain.configure(sampleRate, blockSize, audioOutputs, audioInputs); 
-
-    // update global variables 
-    this->sampleRate = sampleRate;
-    this->blockSize = blockSize;
-    this->channelsIn = audioInputs;
-    this->channelsOut = audioOutputs;
+  // Constructor
+  audioTemplate (int samprate, int blocksize, int audioOutputs, int audioInputs) :
+  audioDomain(), consoleDomain(), // <- domain constructors 
+  sampleRate(samprate), blockSize(blocksize), channelsOut(audioOutputs), channelsIn(audioInputs) // update globals
+  {
+    // configure audioDomain
+    this->audioDomain.configure(this->sampleRate, this->blockSize, this->channelsOut, this->channelsIn); 
   }
 
   // Virtual function for applying dsp 
   // Override in apps that inherit from this template
   inline virtual T processAudio(T in) {return in;}
 
+  // start() function - call in main() after constructor
   inline virtual void start() {
     audioDomain.init();
     consoleDomain.init();
@@ -64,6 +65,7 @@ struct audioTemplate {
       }
     };
 
+    // TO-DO: figure out how to override this in derived apps
     consoleDomain.onLine = [this](std::string line) {
       if (line.size() == 0) {
         return false; // if empty, quit app 
@@ -90,11 +92,11 @@ struct audioTemplate {
     consoleDomain.cleanup();
   }
 };
+#endif
 
 // example main function
 // int main() {
-//   audioTemplate<float> app;
-//   app.configure(48000, 128, 2, 2);
+//   audioTemplate<float> app(48000, 128, 2, 2);
 //   app.start();
 //   return 0;
 // }
