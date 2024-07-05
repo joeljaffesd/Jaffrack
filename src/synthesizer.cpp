@@ -26,6 +26,10 @@ struct synthesizer : audioTemplate<T> {
     this->osc.setFrequency(std::stof(in));
     return "Frequency set";
   }
+
+  std::string initMessage() override {
+    return "Console online. Enter number to set osc frequency. `Enter` to quit.";
+  }
 };
 
 int main() {
