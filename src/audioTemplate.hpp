@@ -42,6 +42,10 @@ struct audioTemplate {
   // Override in apps that inherit from this template
   inline virtual T processAudio(T in) {return in;}
 
+  inline virtual std::string processLine(std::string in) {return "processLine: not configured";}
+
+  inline virtual std::string initMessage() {return "Console Online. Press enter to quit.";} 
+
   // start() function - call in main() after constructor
   inline virtual void start() {
     audioDomain.init();
@@ -70,7 +74,7 @@ struct audioTemplate {
       if (line.size() == 0) {
         return false; // if empty, quit app 
       } else {
-        std::cout << line << std::endl;
+        std::cout << this->processLine(line) << std::endl;
       }
       return true;
     };
@@ -82,7 +86,7 @@ struct audioTemplate {
     // application alive by starting the console domain
     audioDomain.start();
 
-    std::cout << "Console online. Press enter to quit." << std::endl;
+    std::cout << this->initMessage() << std::endl;
     consoleDomain.start(); // Console Domain is a blocking domain
 
     // stop and cleanup domains
