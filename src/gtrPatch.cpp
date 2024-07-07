@@ -34,7 +34,7 @@ struct gtrPatch : audioTemplate<T> {
     this->delay.setFeedback_t60(10000);
     this->delay.setDamping(0.5);
 
-    this->loPass.setG(0);
+    this->loPass.setCutoff(18000, this->sampleRate);
   }
 
   // override processAudio to add fx to signal chain
