@@ -47,7 +47,7 @@ struct audioTemplate {
 
   // Virtual function for responding to console input
   // Override in apps that inherit from this template
-  inline virtual bool processLine(std::string line) {
+  inline virtual void processLine(std::string line) {
     std::cout << "processLine: not configured" << std::endl;
   }
 

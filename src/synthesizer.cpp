@@ -22,9 +22,9 @@ struct synthesizer : audioTemplate<T> {
     return output;
   }
 
-  std::string processLine(std::string in) {
+  void processLine(std::string in) {
     this->osc.setFrequency(std::stof(in));
-    return "Frequency set";
+    std::cout << "Frequency set to: " << in << std::endl;
   }
 
   std::string initMessage() override {

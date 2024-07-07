@@ -29,9 +29,9 @@ struct irTest : audioTemplate<T> {
     return output;
   }
 
-  std::string processLine(std::string in) override {
+  void processLine(std::string in) override {
     this->x_0 = true;
-    return "BANG!";
+    std::cout << "BANG!" << std::endl;
   }
 
   std::string initMessage() override {

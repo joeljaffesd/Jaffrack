@@ -8,7 +8,6 @@ struct tuningApp : audioTemplate<T> {
   giml::Timer<T> timer;
   giml::SinOsc<T> osc;
 
-
   // configure objects in constructor 
   tuningApp(int sampleRate, int blockSize, int audioOutputs, int audioInputs) :
   audioTemplate<T>(sampleRate, blockSize, audioOutputs, audioInputs), // <- call base class constructor 
@@ -31,11 +30,12 @@ struct tuningApp : audioTemplate<T> {
     return osc.processSample() * !timer.isDone();
   }
 
-  std::string processLine(std::string in) override {
+  void processLine(std::string in) override {
     if (in == "tune") {
       this->timer.set(this->sampleRate * 4);
-      return "Tuning";
-    } else {return "";}
+      std::cout << "Tuning" << std::endl;
+    } 
+    else {std::cout << "" << std::endl;}
   }
 
   std::string initMessage() override {
