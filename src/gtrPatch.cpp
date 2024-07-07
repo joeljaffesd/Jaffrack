@@ -3,18 +3,20 @@
 #include "../Gimmel/include/gimmel.hpp"
 
 template <typename T>
-struct audioTest : audioTemplate<T> {
+struct gtrPatch : audioTemplate<T> {
   // add objects to app
   giml::Detune<T> detune;
   giml::Compressor<T> compressor;
+  giml::Delay<T> delay;
   giml::onePole<T> loPass;
 
   // configure objects in constructor 
-  audioTest(int sampleRate, int blockSize, int audioOutputs, int audioInputs) :
+  gtrPatch(int sampleRate, int blockSize, int audioOutputs, int audioInputs) :
   audioTemplate<T>(sampleRate, blockSize, audioOutputs, audioInputs), // <- call base class constructor 
   // call effect constructors 
   detune(sampleRate),
-  compressor(sampleRate)
+  compressor(sampleRate),
+  delay(sampleRate)
   { // configure fx
     this->detune.enable();
     this->detune.setPitchRatio(0.993);
@@ -27,7 +29,12 @@ struct audioTest : audioTemplate<T> {
     this->compressor.setAttack(3.5);
     this->compressor.setRelease(100);
 
-    this->loPass.setG(0.999);
+    this->delay.enable();
+    this->delay.setDelayTime(500);
+    this->delay.setFeedback_t60(10000);
+    this->delay.setDamping(0.5);
+
+    this->loPass.setG(0);
   }
 
   // override processAudio to add fx to signal chain
@@ -35,13 +42,14 @@ struct audioTest : audioTemplate<T> {
     T output = in;
     output = this->compressor.processSample(output);
     output = (this->detune.processSample(output) * 0.5) + (output * 0.5);
+    output = this->delay.processSample(output);
     output = this->loPass.lpf(output);
     return output;
   }
 };
 
 int main() {
-  audioTest<float> app(48000, 128, 2, 2);
+  gtrPatch<float> app(48000, 128, 2, 2);
   app.start();
   return 0;
 }
