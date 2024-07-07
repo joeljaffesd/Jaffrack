@@ -30,21 +30,30 @@ struct audioTemplate {
   int channelsIn;
 
   // Constructor
-  audioTemplate (int samprate, int blocksize, int audioOutputs, int audioInputs) :
+  audioTemplate (int samprate, int blocksize, int audioOutputs, int audioInputs) : // <- Arguments
   audioDomain(), consoleDomain(), // <- domain constructors 
-  sampleRate(samprate), blockSize(blocksize), channelsOut(audioOutputs), channelsIn(audioInputs) // update globals
-  {
-    // configure audioDomain
-    this->audioDomain.configure(this->sampleRate, this->blockSize, this->channelsOut, this->channelsIn); 
-  }
+  // update global variables
+  sampleRate(samprate), blockSize(blocksize), 
+  channelsOut(audioOutputs), channelsIn(audioInputs) 
+  { this->audioDomain.configure( // configure audioDomain
+    this->sampleRate, 
+    this->blockSize, 
+    this->channelsOut, 
+    this->channelsIn);}
 
-  // Virtual function for applying dsp 
+  // Virtual function for applying audio dsp 
   // Override in apps that inherit from this template
   inline virtual T processAudio(T in) {return in;}
 
-  inline virtual std::string processLine(std::string in) {return "processLine: not configured";}
+  // Virtual function for responding to console input
+  // Override in apps that inherit from this template
+  inline virtual bool processLine(std::string line) {
+    std::cout << "processLine: not configured" << std::endl;
+  }
 
-  inline virtual std::string initMessage() {return "Console Online. Press enter to quit.";} 
+  // Virtual function for printing an init message to console
+  // Override in apps that inherit from this template
+  inline virtual std::string initMessage() {return "Console Online. Press `Enter` to Quit.";} 
 
   // start() function - call in main() after constructor
   inline virtual void start() {
@@ -56,6 +65,7 @@ struct audioTemplate {
     audioDomain.onSound = [this](AudioIOData &io) {
       // for each sample in the block...
       for (int sample = 0; sample < this->blockSize; sample++) {
+
         // capture input sample 
         T input = io.in(0, sample);
 
@@ -66,26 +76,25 @@ struct audioTemplate {
 	      for (int channel = 0; channel < this->channelsOut; channel++) {
           io.out(channel, sample) = output;
         }
+
       }
     };
 
-    // TO-DO: figure out how to override this in derived apps
+    // Handles console input
     consoleDomain.onLine = [this](std::string line) {
-      if (line.size() == 0) {
-        return false; // if empty, quit app 
-      } else {
-        std::cout << this->processLine(line) << std::endl;
-      }
+      if (line.size() == 0) {return false;} // if empty, quit app 
+      else {this->processLine(line);} // add your processing here
       return true;
     };
 
-    // print info about your audio device
+    // print info about your audio device on startup
     audioDomain.audioIO().print();
 
     // start audio domain. This domain is non blocking, so we will keep the
     // application alive by starting the console domain
     audioDomain.start();
 
+    // override initMessage() with your own
     std::cout << this->initMessage() << std::endl;
     consoleDomain.start(); // Console Domain is a blocking domain
 
