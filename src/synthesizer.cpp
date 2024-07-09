@@ -1,4 +1,4 @@
-#include "audioTemplate.hpp"
+#include "../include/audioTemplate.hpp"
 
 #include "../Gimmel/include/gimmel.hpp"
 

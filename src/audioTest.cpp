@@ -1,4 +1,4 @@
-#include "audioTemplate.hpp"
+#include "../include/audioTemplate.hpp"
 
 int main() {
     audioTemplate<float> app(48000, 128, 2, 2);

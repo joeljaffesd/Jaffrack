@@ -30,16 +30,21 @@ struct audioTemplate {
   int channelsIn;
 
   // Constructor
-  audioTemplate (int samprate, int blocksize, int audioOutputs, int audioInputs) : // <- Arguments
-  audioDomain(), consoleDomain(), // <- domain constructors 
+  audioTemplate (int samplerate, int blocksize, int audioOutputs, int audioInputs, // mandatory arguments 
+  std::string deviceOut = "Speakers", std::string deviceIn = "Microphone") : // optional arguments with defaults
+  // call domain constructors 
+  audioDomain(), consoleDomain(), 
   // update global variables
-  sampleRate(samprate), blockSize(blocksize), 
-  channelsOut(audioOutputs), channelsIn(audioInputs) 
-  { this->audioDomain.configure( // configure audioDomain
-    this->sampleRate, 
-    this->blockSize, 
-    this->channelsOut, 
-    this->channelsIn);}
+  sampleRate(samplerate), 
+  blockSize(blocksize), 
+  channelsOut(audioOutputs), 
+  channelsIn(audioInputs) 
+  // configure audioDomain
+  { this->audioDomain.audioIO().deviceIn(AudioDevice(deviceIn));
+    this->audioDomain.audioIO().deviceOut(AudioDevice(deviceOut));
+    this->audioDomain.configure(samplerate, blocksize, 
+                                audioOutputs, audioInputs);}
+                                
 
   // Virtual function for applying audio dsp 
   // Override in apps that inherit from this template
@@ -53,9 +58,11 @@ struct audioTemplate {
 
   // Virtual function for printing an init message to console
   // Override in apps that inherit from this template
-  inline virtual std::string initMessage() {return "Console Online. Press `Enter` to Quit.";} 
+  inline virtual std::string initMessage() {
+    return "Console Online. Press `Enter` to Quit.";
+  } 
 
-  // start() function - call in main() after constructor
+  // start() function. Call in main() after constructor
   inline virtual void start() {
     audioDomain.init();
     consoleDomain.init();

@@ -1,7 +1,7 @@
 // Joel A. Jaffe 2024-07-05
 // Audio App for testing the impulse response of effects
 
-#include "audioTemplate.hpp"
+#include "../include/audioTemplate.hpp"
 
 #include "../Gimmel/include/gimmel.hpp"
 
