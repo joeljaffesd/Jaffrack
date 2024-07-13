@@ -1,11 +1,23 @@
 // Joel A. Jaffe 2024-07-09
 // User Interface App for Audio Applications
 
+/*
+TODO:
+- Add docblocks
+- Add oscilloscope class
+*/
+
 #include "../include/graphicsTemplate.hpp"
 
 // functions
 Vec2f stripZ(Vec3f coords) {
   return Vec2f(coords[0], coords[1]);
+}
+
+void snapTo(Mesh &m, Vec2f xy) {
+  Vec3f center = m.getCenter();
+  m.translate(-center[0], -center[1]);
+  m.translate(xy[0], xy[1]);
 }
 
 void getBounds2d(Mesh &m, Vec2f& min, Vec2f& max) {
@@ -68,14 +80,46 @@ struct Element {
 
   void addContent(Mesh& m) {
     // scale content to unit space, center and draw in frame
+    this->content.copy(m);
     m.unitize();
     m.scale(std::min(width, height) / 2 - padding);
     m.translate(center[0], center[1]);
   }
 
+  void translate(Vec2f xy) {
+    this->frame.translate(xy[0], xy[1]);
+    this->content.translate(xy[0], xy[1]);
+  }
+
+  void snap(Vec2f xy) {
+    snapTo(this->frame, xy);
+    snapTo(this->content, xy);
+  }
+
+  void scale(float s) {
+    this->frame.scale(s);
+    this->content.scale(s);
+  }
+
+  void unit() {
+    this->frame.unitize();
+    this->content.unitize();
+  }
+
   void draw(Graphics &g) {
     g.draw(frame);
     g.draw(content);
+  }
+
+  void copy(Element &e) {
+    e.frame.copy(e.frame);
+    e.frame.copy(e.frame);
+  }
+
+  inline virtual void query(Vec2f xy) {
+    if (this->inside(xy, this->frame)) {
+        this->frame.primitive(Mesh::TRIANGLE_FAN);
+      } else {this->frame.primitive(Mesh::LINE_LOOP);}
   }
 
   bool inside(Vec2f coords, Mesh& m) {
@@ -120,14 +164,45 @@ struct Scope {
   void draw(Graphics &g){g.draw(mesh);}
 };
 
+struct Container {
+  // member variables
+  Vec2f center = Vec2f(0, 0.85);
+  float width = 2.f, height = 0.25f, padding = 0.05f;
+  std::vector<Element> elements;
+
+  void addElement(Element& e) {
+    //Element elem; 
+    //elem.seed();
+    //elem.copy(e);
+    elements.push_back(e); // append element
+    float eWidth = width/elements.size();
+    for (int i = 0; i < elements.size(); i++) {
+      Vec2f target = center + Vec2f(-width/2 + eWidth*(i+0.5), 0);
+      elements[i].unit();
+      elements[i].scale(eWidth/width);
+      elements[i].snap(target);
+    }
+  } 
+
+  void draw(Graphics &g){
+    for (int i = 0; i < elements.size(); i++) {
+      elements[i].draw(g);
+    }
+  }
+
+  void query(Vec2f xy) {
+    for (int i = 0; i < elements.size(); i++) {
+      elements[i].query(xy);
+    }
+  }
+
+};
+
 struct MenuBar {
   // member variables
   Vec2f anchor = Vec2f(0, 1);
   float width = 2.f, height = 0.25f, padding = 0.05f;
-  Vec2f bLeftCorn = Vec2f(anchor[0] - width/2, anchor[1] - height);
-  Vec2f tRightCorn = Vec2f(anchor[0] + width/2, anchor[1]);
   std::vector<Mesh> containers;
-  std::vector<Icon> icons;
 
   // methods
   void seed(int numElements) {
@@ -186,33 +261,41 @@ struct MenuBar {
 // app class
 template <typename T>
 struct audioUI : graphicsTemplate<T> {
-  MenuBar menu;
+  //MenuBar menu;
   Scope scope;
-  Element test;
+  Element body;
+  Container test;
   
   void onCreate() override {
-    menu.seed(6);
+    //menu.seed(6);
     scope.seed();
-    menu.inside(Vec2f(0,0), menu.containers[0]);
-    test.center = Vec2f(0, -0.1);
-    test.height = 1.65;
-    test.width = 1.95;
-    test.seed();
-    test.addContent(scope.mesh);
+    body.center = Vec2f(0, 0);
+    body.height = 1.65;
+    body.width = 1.95;
+    body.seed();
+    body.addContent(scope.mesh);
+
+    for (int i = 0; i < 6; i++) {
+      test.addElement(body);
+    }
+    //test.seed(); 
   }
+
   void onAnimate(double dt) override {}
 
   bool onMouseMove(const Mouse& m) override {
     Vec2f pos = mouseNormCords(m.x(), m.y(), this->width(), this->height());
-    menu.query(pos);
+    // menu.query(pos);
+    test.query(pos);
     return true;
   } 
 
   void onDraw(Graphics& g) override {
     graphicsTemplate<T>::onDraw(g); // call base class onDraw() 
-    menu.draw(g);
-    scope.draw(g);
-    test.draw(g);
+    //menu.draw(g);
+    //scope.draw(g);
+    body.draw(g);
+    //test.draw(g);
   }
 };
 
