@@ -66,7 +66,6 @@ struct Icon : public Mesh {
 struct Element {
   Vec2f center = Vec2f(0, 0);
   float width = 1.f, height = 1.f, padding = 0.1f;
-  //float radius = std::min(width, height) / 2;
   Mesh frame;
   Mesh content;
   Color frameColor = HSV(0, 0, 1);
@@ -81,19 +80,21 @@ struct Element {
   void addContent(Mesh& m) {
     // scale content to unit space, center and draw in frame
     this->content.copy(m);
-    m.unitize();
-    m.scale(std::min(width, height) / 2 - padding);
-    m.translate(center[0], center[1]);
+    content.unitize();
+    content.scale(std::min(width, height) / 2 - padding);
+    content.translate(center[0], center[1]);
   }
 
   void translate(Vec2f xy) {
     this->frame.translate(xy[0], xy[1]);
     this->content.translate(xy[0], xy[1]);
+    this->center = frame.getCenter();
   }
 
   void snap(Vec2f xy) {
     snapTo(this->frame, xy);
     snapTo(this->content, xy);
+    this->center = frame.getCenter();
   }
 
   void scale(float s) {
@@ -104,6 +105,7 @@ struct Element {
   void unit() {
     this->frame.unitize();
     this->content.unitize();
+    content.scale(std::min(width, height) / 2 - padding);
   }
 
   void draw(Graphics &g) {
@@ -113,7 +115,7 @@ struct Element {
 
   void copy(Element &e) {
     e.frame.copy(e.frame);
-    e.frame.copy(e.frame);
+    e.content.copy(e.content);
   }
 
   inline virtual void query(Vec2f xy) {
@@ -152,7 +154,7 @@ struct Scope {
     mesh.primitive(Mesh::LINE_STRIP); // primitive 
     for (int i = 0; i < sampleRate; i++) {
       mesh.vertex(-1 + unit * i * width, // x
-                  std::sin(unit * i * M_2PI)); // y
+                  std::sin(unit * i * 2 * M_2PI)); // y
       mesh.color(HSV(0,0,1)); // color
     }
     //mesh.scale((width - padding)/width, (height + std::abs(anchor[1]) - 2*padding) / (2));
@@ -278,6 +280,7 @@ struct audioUI : graphicsTemplate<T> {
     for (int i = 0; i < 6; i++) {
       test.addElement(body);
     }
+    body.translate(Vec2f(0, -test.height/2 - test.padding/2));
     //test.seed(); 
   }
 
@@ -295,7 +298,7 @@ struct audioUI : graphicsTemplate<T> {
     //menu.draw(g);
     //scope.draw(g);
     body.draw(g);
-    //test.draw(g);
+    test.draw(g);
   }
 };
 
