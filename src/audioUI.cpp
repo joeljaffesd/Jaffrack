@@ -63,80 +63,179 @@ struct Icon : public Mesh {
   // methods
 };
 
-struct Element {
+/**
+ * @brief Element class containing meshes for frame and content.
+ * @param center orients the position of the element 
+ * @param width scales element width
+ * @param height scales element height
+ * @param padding scales size of content relative to frame with its inverse
+ * @param frameColor determines color of frame. Set same as background to hide frame
+ * @param contentColor determines color of content
+ */
+class Element {
+private:
   Vec2f center = Vec2f(0, 0);
-  float width = 1.f, height = 1.f, padding = 0.1f;
-  Mesh frame;
-  Mesh content;
-  Color frameColor = HSV(0, 0, 1);
-  Color contentColor = HSV(0, 0, 1);
+  float width = 1.f, height = 1.f, padding = 0;
+  Mesh frame, content;
+  Color frameColor = HSV(0, 0, 1), contentColor = HSV(0, 0, 1);
 
-  void seed() {
-    makeFrame(frame, width, height, 
-              center[0], center[1], frameColor);
-    frame.primitive(Mesh::LINE_LOOP);
+public:
+  // Element() = delete;
+  Element(Vec2f center = Vec2f(0,0), float width = 1.f, float height = 1.f, 
+          float padding = 0.25, Color frameColor = HSV(0, 0, 1), Color contentColor = HSV(0, 0, 1)) : 
+            center(center), width(width), height(height), padding(padding), 
+            frameColor(frameColor), contentColor(contentColor) {
+              makeFrame(frame, width, height, center[0], center[1], frameColor);
+              frame.primitive(Mesh::LINE_LOOP);
   }
 
+  //Copy constructor
+  Element(const Element& e) {
+    this->center = e.center;
+    this->width = e.width;
+    this->height = e.height;
+    this->padding = e.padding;
+    this->frameColor = e.frameColor;
+    this->contentColor = e.contentColor;
+    this->frame.copy(e.frame);
+    this->content.copy(e.content);
+  }
+
+  /**
+   * @brief copies a mesh to content 
+   * @param m mesh to be copied
+   */
   void addContent(Mesh& m) {
-    // scale content to unit space, center and draw in frame
-    this->content.copy(m);
-    content.unitize();
-    content.scale(std::min(width, height) / 2 - padding);
-    content.translate(center[0], center[1]);
+    this->content.copy(m); // copies input mesh... could this be done better?
+    content.unitize(); // unitize for scaling
+    content.scale((std::sqrt(width*width + height*height) * (1 - padding)) / std::sqrt(8)); // scale
+    content.translate(center[0], center[1]); // snap to center of frame
   }
 
-  void translate(Vec2f xy) {
-    this->frame.translate(xy[0], xy[1]);
-    this->content.translate(xy[0], xy[1]);
-    this->center = frame.getCenter();
-  }
-
+  /**
+   * @brief updates center and snaps meshes to it
+   * @param m mesh to be copied
+   */
   void snap(Vec2f xy) {
-    snapTo(this->frame, xy);
-    snapTo(this->content, xy);
-    this->center = frame.getCenter();
+    center = xy;
+    snapTo(frame, xy);
+    snapTo(content, xy);
   }
 
+  /**
+   * @brief scales meshes by a factor
+   * @param s scaling factor
+   */
   void scale(float s) {
+    width = width * s;
+    height = height * s;
     this->frame.scale(s);
     this->content.scale(s);
   }
 
+  /**
+   * @brief unitizes meshes
+   */
   void unit() {
     this->frame.unitize();
     this->content.unitize();
-    content.scale(std::min(width, height) / 2 - padding);
+    this->content.scale((1 - this->padding));
   }
 
+  void color(Color frameColor = HSV(0, 0, 1), Color contentColor = HSV(0, 0, 1)) {
+    for (int i = 0; i < frame.colors().size(); i++) {frame.colors()[i] = frameColor;}
+    for (int i = 0; i < content.colors().size(); i++) {content.colors()[i] = frameColor;}
+  }
+
+  /**
+   * @brief draws meshes
+   * @param g graphics context
+   */
   void draw(Graphics &g) {
     g.draw(frame);
     g.draw(content);
   }
 
-  void copy(Element &e) {
-    e.frame.copy(e.frame);
-    e.content.copy(e.content);
-  }
-
+  /**
+   * @brief overridable query function. 
+   * Default checks if xy is inside frame and color fills if so
+   */
   inline virtual void query(Vec2f xy) {
-    if (this->inside(xy, this->frame)) {
-        this->frame.primitive(Mesh::TRIANGLE_FAN);
-      } else {this->frame.primitive(Mesh::LINE_LOOP);}
+    if (this->inside(xy, this->frame)) {this->frame.primitive(Mesh::TRIANGLE_FAN);} 
+    else {this->frame.primitive(Mesh::LINE_LOOP);}
   }
 
-  bool inside(Vec2f coords, Mesh& m) {
+  /**
+   * @brief function that checks if xy is inside a mesh
+   * @param xy 
+   * @param m mesh
+   */
+  bool inside(Vec2f xy, Mesh& m) {
     bool state = false; // outside by default
     int checks = 0;
     Vec2f min, max;
     getBounds2d(m, min, max); // find bounds
     for (int i = 0; i < 2; i++) { // loop over dims
-      if (coords[i] > min[i] && coords[i] < max[i]) {
-        checks++; // increment checks if in bounds
-      }
+      if (xy[i] > min[i] && xy[i] < max[i]) {checks++;} // increment checks if in bounds
     }
     if (checks == 2) {state = true;} // inside
     return state;
   }
+};
+
+/**
+ * @brief Container class that holds elements and organizes them horizontally
+ * TODO: add enums for organizing vertically, grid, etc
+ */
+class Container {
+private: // member variables
+  Vec2f center = Vec2f(0, 0);
+  float width = 1.f, height = 1.f, padding = 0.f;
+  std::vector<Element> elements;
+
+public: // member functions
+  // Container() = delete;
+  Container(Vec2f center = Vec2f(0.f, 0.85f), float width = 2.f, float height = 0.25f, float padding = 0.15) : 
+            center(center), width(width), height(height), padding(padding) {}
+
+  /**
+   * @brief Append elements and organize accordingly 
+   * @param e element to append
+   */
+  void addElement(Element& e) {
+    Element elem(e);
+    elements.push_back(elem); // append element
+    float eWidth = width/elements.size(); // calculate widths- this orients container horizontally
+    float colorStep = 1.f / elements.size();
+    for (int i = 0; i < elements.size(); i++) { // for each element...
+      Vec2f target = center + Vec2f(-width/2 + eWidth*(i+0.5), 0); // calculate center
+      elements[i].unit(); // unitize 
+      elements[i].scale((eWidth/width) * (1 - padding)); // scale 
+      elements[i].snap(target); // move to target
+      elements[i].color (HSV(i * colorStep, 1, 1));
+    }
+  } 
+
+  /**
+   * @brief Draw function 
+   * @param g graphics content
+   */
+  void draw(Graphics &g){ 
+    for (int i = 0; i < elements.size(); i++) {
+      elements[i].draw(g);
+    }
+  }
+
+  /**
+   * @brief calls the query of each element
+   * @param xy coordinate to query
+   */
+  void query(Vec2f xy) {
+    for (int i = 0; i < elements.size(); i++) {
+      elements[i].query(xy);
+    }
+  }
+
 };
 
 struct Scope {
@@ -166,139 +265,34 @@ struct Scope {
   void draw(Graphics &g){g.draw(mesh);}
 };
 
-struct Container {
-  // member variables
-  Vec2f center = Vec2f(0, 0.85);
-  float width = 2.f, height = 0.25f, padding = 0.05f;
-  std::vector<Element> elements;
-
-  void addElement(Element& e) {
-    //Element elem; 
-    //elem.seed();
-    //elem.copy(e);
-    elements.push_back(e); // append element
-    float eWidth = width/elements.size();
-    for (int i = 0; i < elements.size(); i++) {
-      Vec2f target = center + Vec2f(-width/2 + eWidth*(i+0.5), 0);
-      elements[i].unit();
-      elements[i].scale(eWidth/width);
-      elements[i].snap(target);
-    }
-  } 
-
-  void draw(Graphics &g){
-    for (int i = 0; i < elements.size(); i++) {
-      elements[i].draw(g);
-    }
-  }
-
-  void query(Vec2f xy) {
-    for (int i = 0; i < elements.size(); i++) {
-      elements[i].query(xy);
-    }
-  }
-
-};
-
-struct MenuBar {
-  // member variables
-  Vec2f anchor = Vec2f(0, 1);
-  float width = 2.f, height = 0.25f, padding = 0.05f;
-  std::vector<Mesh> containers;
-
-  // methods
-  void seed(int numElements) {
-    float containerWidth = width/numElements;
-    for (int i = 0; i < numElements; i++) {
-      Mesh mesh;
-      mesh.primitive(Mesh::LINE_LOOP);
-      // draw a box for each 
-      Vec2f center = anchor;
-      center[0] = -width/2 + containerWidth*(i+0.5);
-      center[1] -= height/2;
-      makeFrame(mesh, // pass in a mesh
-               containerWidth - padding, height - padding, 
-               center[0], center[1], // set w,h
-               HSV(i * 1.f/numElements, 1, 1)); // color
-      containers.push_back(mesh); // append to list
-    }
-  }
-
-  void draw(Graphics &g){
-    for (int i = 0; i < containers.size(); i++) {
-      g.draw(containers[i]);
-    }
-  }
-
-  void setPrims(Mesh::Primitive prim) {
-    for (int i = 0; i < containers.size(); i++) {
-      containers[i].primitive(prim);
-    }
-  }
-
-  void query(Vec2f coords) {
-    for (int i = 0; i < containers.size(); i++) {
-      if (this->inside(coords, containers[i])) {
-        containers[i].primitive(Mesh::TRIANGLE_FAN);
-      } else {containers[i].primitive(Mesh::LINE_LOOP);}
-    }
-  }
-
-  bool inside(Vec2f coords, Mesh& m) {
-    bool state = false; // outside by default
-    int checks = 0;
-    Vec2f min, max;
-    getBounds2d(m, min, max); // find bounds
-    for (int i = 0; i < 2; i++) { // loop over dims
-      if (coords[i] > min[i] && coords[i] < max[i]) {
-        checks++; // increment checks if in bounds
-      }
-    }
-    if (checks == 2) {state = true;} // inside
-    return state;
-  }
-
-};
-
 // app class
 template <typename T>
 struct audioUI : graphicsTemplate<T> {
-  //MenuBar menu;
   Scope scope;
-  Element body;
-  Container test;
+  Element button;
+  Container menu;
   
   void onCreate() override {
-    //menu.seed(6);
     scope.seed();
-    body.center = Vec2f(0, 0);
-    body.height = 1.65;
-    body.width = 1.95;
-    body.seed();
-    body.addContent(scope.mesh);
+    button.addContent(scope.mesh);
 
     for (int i = 0; i < 6; i++) {
-      test.addElement(body);
+      menu.addElement(button);
     }
-    body.translate(Vec2f(0, -test.height/2 - test.padding/2));
-    //test.seed(); 
   }
 
   void onAnimate(double dt) override {}
 
   bool onMouseMove(const Mouse& m) override {
     Vec2f pos = mouseNormCords(m.x(), m.y(), this->width(), this->height());
-    // menu.query(pos);
-    test.query(pos);
+    menu.query(pos);
     return true;
   } 
 
   void onDraw(Graphics& g) override {
     graphicsTemplate<T>::onDraw(g); // call base class onDraw() 
-    //menu.draw(g);
-    //scope.draw(g);
-    body.draw(g);
-    test.draw(g);
+    //button.draw(g);
+    menu.draw(g); // draw menu
   }
 };
 
