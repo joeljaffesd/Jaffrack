@@ -8,6 +8,7 @@ TODO:
 */
 
 #include "../include/graphicsTemplate.hpp"
+#include "../Gimmel/include/utility.hpp"
 
 // functions
 Vec2f stripZ(Vec3f coords) {
@@ -142,6 +143,11 @@ public:
     this->content.scale((1 - this->padding));
   }
 
+  /**
+   * @brief colors meshes 
+   * @param frameColor
+   * @param contentColor
+   */
   void color(Color frameColor = HSV(0, 0, 1), Color contentColor = HSV(0, 0, 1)) {
     for (int i = 0; i < frame.colors().size(); i++) {frame.colors()[i] = frameColor;}
     for (int i = 0; i < content.colors().size(); i++) {content.colors()[i] = frameColor;}
@@ -238,6 +244,43 @@ public: // member functions
 
 };
 
+class Oscilloscope : public al::Mesh {
+public:
+	Oscilloscope() = delete; //Remove default constructor because we do not want them instantiating it
+	Oscilloscope(int sampleRate, float yCoord) : bufferSize(sampleRate), yCoord(yCoord) {
+		this->buffer.allocate(sampleRate);
+		this->primitive(al::Mesh::LINE_STRIP);
+		for (int i = 0; i < bufferSize; i++) {
+			this->vertex((i / static_cast<float>(this->bufferSize)) * 2.f - 1.f, yCoord);
+			this->color(al::RGB(1.f));
+		}
+	}
+
+	void writeSample(float sample) {
+		this->buffer.writeSample(sample);
+	}
+
+	void update() {
+		for (int i = 0; i < this->bufferSize; i++) {
+			this->vertices()[i][1] = ((yCoord + 
+                                this->buffer.readSample((size_t)(this->bufferSize - i)))
+                                * (1 - std::fabs(this->yCoord)));
+		}
+	}
+
+	void setColorRGB255(int red, int green, int blue) {
+		//Given numbers in the range of [0, 255], convert to floating points
+		for (int i = 0; i < this->bufferSize; i++) {
+			this->colors()[i] = al::RGB(red / 255.f, green / 255.f, blue / 255.f);
+		}
+	}
+
+private:
+	int bufferSize;
+  float yCoord;
+	giml::CircularBuffer<float> buffer;
+};
+
 struct Scope {
   // member variables
   Vec2f anchor = Vec2f(0, 0.7);
@@ -265,23 +308,38 @@ struct Scope {
   void draw(Graphics &g){g.draw(mesh);}
 };
 
-// app class
+// app struct
 template <typename T>
 struct audioUI : graphicsTemplate<T> {
   Scope scope;
   Element button;
   Container menu;
+  Oscilloscope oscope{48000,  -0.25};
+  float phase = 0.f;
   
   void onCreate() override {
     scope.seed();
     button.addContent(scope.mesh);
+
+    // for (int i = 0; i < 48000; i++) {
+    //   oscope.writeSample(std::sin(M_2PI * i/48000));
+    // }
 
     for (int i = 0; i < 6; i++) {
       menu.addElement(button);
     }
   }
 
-  void onAnimate(double dt) override {}
+  void onAnimate(double dt) override {
+    phase += dt;
+    if (phase >= 1.f) (phase -= 1.f);
+
+    for (int i = 0; i < 800; i++){
+      oscope.writeSample(std::sin(phase * M_2PI));
+    }
+    
+    oscope.update();
+  }
 
   bool onMouseMove(const Mouse& m) override {
     Vec2f pos = mouseNormCords(m.x(), m.y(), this->width(), this->height());
@@ -291,8 +349,8 @@ struct audioUI : graphicsTemplate<T> {
 
   void onDraw(Graphics& g) override {
     graphicsTemplate<T>::onDraw(g); // call base class onDraw() 
-    //button.draw(g);
     menu.draw(g); // draw menu
+    g.draw(oscope);
   }
 };
 
