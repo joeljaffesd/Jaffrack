@@ -1,3 +1,6 @@
 [submodule "Gimmel"]
 	path = Gimmel
 	url = https://github.com/Mahdi03/Gimmel
+[submodule "NeuralAmpModelerCore"]
+	path = NeuralAmpModelerCore
+	url = https://github.com/joeljaffesd/NeuralAmpModelerCore
