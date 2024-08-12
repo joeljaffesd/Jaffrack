@@ -45,10 +45,12 @@ struct audioTemplate {
     this->audioDomain.configure(samplerate, blocksize, 
                                 audioOutputs, audioInputs);}
                                 
-
-  // Virtual function for applying audio dsp 
+  // Virtual function for applying simple audio dsp (mono in -> multi-mono out)
   // Override in apps that inherit from this template
   inline virtual T processAudio(T in) {return in;}
+
+  // More general audio dsp function for more advanced use cases
+  inline virtual void onSound(AudioIOData &io) { (void)io; }
 
   // Virtual function for responding to console input
   // Override in apps that inherit from this template
@@ -83,8 +85,8 @@ struct audioTemplate {
 	      for (int channel = 0; channel < this->channelsOut; channel++) {
           io.out(channel, sample) = output;
         }
-
       }
+      this->onSound(io); // more generalized audio callback for more advanced operations
     };
 
     // Handles console input
