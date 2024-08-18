@@ -1,0 +1,16 @@
+# This is a copy of a systemd .service that runs namTest.
+# The OG lives at /etc/systemd/system
+[Unit]
+Description=Launches NAM
+
+[Service]
+Type=simple
+EnvironmentFile=/etc/environment
+ExecStart=/home/patch/allolib_playground/Jaffrack/scripts/runNam.sh
+StandardOutput=tty
+StandardError=tty
+TTYPath=/dev/tty1
+
+[Install]
+WantedBy=multi-user.target
+
