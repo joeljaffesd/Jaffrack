@@ -1,0 +1,17 @@
+# Copy of a .service that launches nam directly
+# OG lives at /etc/systemd/system
+
+[Unit]
+Description=Launches NAM
+
+[Service]
+Type=simple
+EnvironmentFile=/etc/environment
+WorkingDirectory=/home/patch/allolib_playground/Jaffrack/src/bin
+ExecStart=/home/patch/allolib_playground/Jaffrack/src/bin/namTest
+StandardOutput=tty
+StandardError=tty
+TTYPath=/dev/tty1
+
+[Install]
+WantedBy=multi-user.target
