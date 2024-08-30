@@ -2,7 +2,7 @@
 #define STATE_HPP
 
 struct SharedState {
-  const int bufferSize = 48000;
+  static const int bufferSize = 48000;
   int writeIndex = 0;
   float buffer[bufferSize];
 

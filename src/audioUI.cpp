@@ -37,7 +37,7 @@ struct audioUI : graphicsTemplate<T> {
   void onAnimate(double dt) override {
     taker.get(*localState);
     for (int i = 0; i < 48000; i++) {
-      this->oscope.vertices()[i] = localState->buffer[i];
+      this->oscope.vertices()[i][1] = localState->buffer[48000 - i];
     }
   }
 
