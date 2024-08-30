@@ -24,10 +24,14 @@ struct cuttleSend : wetDryWet<T> {
   void onSound(AudioIOData &io) override {
     wetDryWet<T>::onSound(io);
     for (int sample = 0; sample < this->blockSize; sample++) {
+      float amp = 0.f;
       for (int channel = 0; channel < this->channelsOut; channel++){
-        localState->buffer[sample] += io.out(channel, sample);
+        //localState->buffer[sample] += io.out(channel, sample);
+        amp += io.out(channel, sample);
       }
-      localState->buffer[sample] /= this->channelsOut;
+      //localState->buffer[sample] /= this->channelsOut;
+      amp /= this->channelsOut();
+      localState->writeSample(amp);
     }
     maker.set(*localState);
   }
