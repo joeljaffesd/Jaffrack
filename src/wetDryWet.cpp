@@ -5,7 +5,7 @@
 #include "../NeuralAmpModelerCore/NAM/all.h"
 
 template <typename T>
-struct namTest : audioTemplate<T> {
+struct wetDryWet : audioTemplate<T> {
   const char* mPath = "../../NAM_Models/MarshallModel.nam";
   std::unique_ptr<nam::DSP> mModel = nam::get_dsp(mPath);
   giml::Detune<T> detuneL;  
@@ -13,7 +13,7 @@ struct namTest : audioTemplate<T> {
   giml::Delay<T> longDelay; 
   giml::Delay<T> shortDelay;
 
-  namTest(int sampleRate, int blockSize, int audioOutputs, int audioInputs) :
+  wetDryWet(int sampleRate, int blockSize, int audioOutputs, int audioInputs) :
   audioTemplate<T>(sampleRate, blockSize, audioOutputs, audioInputs),
   detuneL(sampleRate), detuneR(sampleRate), longDelay(sampleRate, 1000), shortDelay(sampleRate, 1000)
   {  
@@ -44,8 +44,10 @@ struct namTest : audioTemplate<T> {
   }
 };
 
+#ifndef MAIN
 int main() {
-  namTest<float> app(48000, 128, 2, 1);
+  wetDryWet<float> app(48000, 128, 2, 1);
   app.start();
   return 0;
 }
+#endif

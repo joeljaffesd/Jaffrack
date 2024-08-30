@@ -4,3 +4,6 @@
 [submodule "NeuralAmpModelerCore"]
 	path = NeuralAmpModelerCore
 	url = https://github.com/joeljaffesd/NeuralAmpModelerCore
+[submodule "cuttlebone"]
+	path = cuttlebone
+	url = https://github.com/kybr/cuttlebone
