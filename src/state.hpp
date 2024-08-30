@@ -13,6 +13,13 @@ struct SharedState {
       writeIndex = 0; // circular logic 
     }
   }
+
+  float readSample(int order) {
+    if (order >= bufferSize) {order = bufferSize - 1;}
+    int readIndex = writeIndex - order;
+    if (readIndex < 0) {readIndex += bufferSize;}
+    return buffer[readIndex];
+  }
 };
 
 #endif
