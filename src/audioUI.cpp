@@ -35,7 +35,7 @@ struct audioUI : graphicsTemplate<T> {
   void onAnimate(double dt) override {
     taker.get(*localState);
     for (int i = 0; i < 48000; i++) {
-      this->oscope.vertices()[i][1] = (localState->readSample(47999 - i));
+      oscope.vertices()[i][1] = (oscope.yCoord + localState->readSample(47999 - i)) * (1 - std::fabs(oscope.yCoord));
     }
   }
 

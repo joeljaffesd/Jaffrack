@@ -298,9 +298,10 @@ public:
 		for (int i = 0; i < this->bufferSize; i++) {this->colors()[i] = c;}
 	}
 
+  float yCoord;
+
 private:
 	int bufferSize;
-  float yCoord;
 	giml::CircularBuffer<float> buffer;
 };
 
