@@ -20,9 +20,7 @@ struct audioUI : graphicsTemplate<T> {
   Oscilloscope oscope{48000,  -0.25};
   float phase = 0.f;
 
-  void onInit() override {
-    taker.start();
-  }
+  void onInit() override {taker.start();}
   
   void onCreate() override {
     scope.seed();
@@ -37,7 +35,7 @@ struct audioUI : graphicsTemplate<T> {
   void onAnimate(double dt) override {
     taker.get(*localState);
     for (int i = 0; i < 48000; i++) {
-      this->oscope.vertices()[i][1] = localState->readSample(48000 - i);
+      this->oscope.vertices()[i][1] = (localState->readSample(47999 - i));
     }
   }
 
