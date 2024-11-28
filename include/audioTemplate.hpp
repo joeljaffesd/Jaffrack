@@ -30,23 +30,41 @@ struct audioTemplate {
   int channelsIn;
 
   // Constructor
-  audioTemplate (int samprate, int blocksize, int audioOutputs, int audioInputs) :
-  audioDomain(), consoleDomain(), // <- domain constructors 
-  sampleRate(samprate), blockSize(blocksize), channelsOut(audioOutputs), channelsIn(audioInputs) // update globals
-  {
-    // configure audioDomain
-    this->audioDomain.configure(this->sampleRate, this->blockSize, this->channelsOut, this->channelsIn); 
-  }
-
-  // Virtual function for applying dsp 
+  audioTemplate (int samplerate, int blocksize, int audioOutputs, int audioInputs, // mandatory arguments 
+  std::string deviceOut = "Speakers", std::string deviceIn = "Microphone") : // optional arguments with defaults
+  // call domain constructors 
+  audioDomain(), consoleDomain(), 
+  // update global variables
+  sampleRate(samplerate), 
+  blockSize(blocksize), 
+  channelsOut(audioOutputs), 
+  channelsIn(audioInputs) 
+  // configure audioDomain
+  { this->audioDomain.audioIO().deviceIn(AudioDevice(deviceIn));
+    this->audioDomain.audioIO().deviceOut(AudioDevice(deviceOut));
+    this->audioDomain.configure(samplerate, blocksize, 
+                                audioOutputs, audioInputs);}
+                                
+  // Virtual function for applying simple audio dsp (mono in -> multi-mono out)
   // Override in apps that inherit from this template
   inline virtual T processAudio(T in) {return in;}
 
-  inline virtual std::string processLine(std::string in) {return "processLine: not configured";}
+  // More general audio dsp function for more advanced use cases
+  inline virtual void onSound(AudioIOData &io) { (void)io; }
 
-  inline virtual std::string initMessage() {return "Console Online. Press enter to quit.";} 
+  // Virtual function for responding to console input
+  // Override in apps that inherit from this template
+  inline virtual void processLine(std::string line) {
+    std::cout << "processLine: not configured" << std::endl;
+  }
 
-  // start() function - call in main() after constructor
+  // Virtual function for printing an init message to console
+  // Override in apps that inherit from this template
+  inline virtual std::string initMessage() {
+    return "Console Online. Press `Enter` to Quit.";
+  } 
+
+  // start() function. Call in main() after constructor
   inline virtual void start() {
     audioDomain.init();
     consoleDomain.init();
@@ -56,6 +74,7 @@ struct audioTemplate {
     audioDomain.onSound = [this](AudioIOData &io) {
       // for each sample in the block...
       for (int sample = 0; sample < this->blockSize; sample++) {
+
         // capture input sample 
         T input = io.in(0, sample);
 
@@ -67,25 +86,24 @@ struct audioTemplate {
           io.out(channel, sample) = output;
         }
       }
+      this->onSound(io); // more generalized audio callback for more advanced operations
     };
 
-    // TO-DO: figure out how to override this in derived apps
+    // Handles console input
     consoleDomain.onLine = [this](std::string line) {
-      if (line.size() == 0) {
-        return false; // if empty, quit app 
-      } else {
-        std::cout << this->processLine(line) << std::endl;
-      }
+      if (line.size() == 0) {return false;} // if empty, quit app 
+      else {this->processLine(line);} // add your processing here
       return true;
     };
 
-    // print info about your audio device
+    // print info about your audio device on startup
     audioDomain.audioIO().print();
 
     // start audio domain. This domain is non blocking, so we will keep the
     // application alive by starting the console domain
     audioDomain.start();
 
+    // override initMessage() with your own
     std::cout << this->initMessage() << std::endl;
     consoleDomain.start(); // Console Domain is a blocking domain
 

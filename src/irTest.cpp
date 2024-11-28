@@ -1,7 +1,7 @@
 // Joel A. Jaffe 2024-07-05
 // Audio App for testing the impulse response of effects
 
-#include "audioTemplate.hpp"
+#include "../include/audioTemplate.hpp"
 
 #include "../Gimmel/include/gimmel.hpp"
 
@@ -29,9 +29,9 @@ struct irTest : audioTemplate<T> {
     return output;
   }
 
-  std::string processLine(std::string in) override {
+  void processLine(std::string in) override {
     this->x_0 = true;
-    return "BANG!";
+    std::cout << "BANG!" << std::endl;
   }
 
   std::string initMessage() override {
