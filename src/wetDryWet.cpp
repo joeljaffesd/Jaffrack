@@ -3,11 +3,11 @@
 #include "../include/audioTemplate.hpp"
 #include "../Gimmel/include/gimmel.hpp"
 #include "../NeuralAmpModelerCore/NAM/all.h"
+#include "./namParser/MarshallModel.h"
 
 template <typename T>
 struct wetDryWet : audioTemplate<T> {
-  const char* mPath = "../../NAM_Models/MarshallModel.nam";
-  std::unique_ptr<nam::DSP> mModel = nam::get_dsp(mPath);
+  std::unique_ptr<nam::DSP> mModel = nam::get_dsp(MarshallModel);
   giml::Detune<T> detuneL;  
   giml::Detune<T> detuneR;
   giml::Delay<T> longDelay; 
@@ -40,6 +40,11 @@ struct wetDryWet : audioTemplate<T> {
       T in = io.out(0);
       io.out(0) = in + (0.31 * longDelay.processSample(detuneL.processSample(io.out(0))));
       io.out(1) = in + (0.31 * shortDelay.processSample(detuneR.processSample(io.out(0))));
+
+      for (int channel = 2; channel < io.channelsOut(); channel++) {
+        if (channel % 2 == 0) { io.out(channel) = io.out(0); } 
+        else { io.out(channel) = io.out(1); }
+      }
     }
   }
 };
