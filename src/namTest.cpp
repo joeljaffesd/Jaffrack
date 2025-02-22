@@ -2,8 +2,8 @@
 
 #include "../include/audioTemplate.hpp"
 #include "../Gimmel/include/gimmel.hpp"
-#include "../NeuralAmpModelerCore/NAM/all.h"
-#include "./namParser/MarshallModel.h"
+#include "../microNam/NAM/all.h"
+#include "../microNam/example_models/MarshallModel.h"
 
 template <typename T>
 struct namTest : audioTemplate<T> {

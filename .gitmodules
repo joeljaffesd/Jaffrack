@@ -1,9 +1,9 @@
 [submodule "Gimmel"]
 	path = Gimmel
 	url = https://github.com/jaffco/Gimmel
-[submodule "NeuralAmpModelerCore"]
-	path = NeuralAmpModelerCore
-	url = https://github.com/joeljaffesd/NeuralAmpModelerCore
 [submodule "cuttlebone"]
 	path = cuttlebone
 	url = https://github.com/kybr/cuttlebone
+[submodule "microNam"]
+	path = microNam
+	url = https://github.com/jaffco/microNam
