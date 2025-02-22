@@ -3,11 +3,11 @@
 #include "../include/audioTemplate.hpp"
 #include "../Gimmel/include/gimmel.hpp"
 #include "../NeuralAmpModelerCore/NAM/all.h"
+#include "./namParser/MarshallModel.h"
 
 template <typename T>
 struct namTest : audioTemplate<T> {
-  const char* mPath = "../../NAM_Models/MarshallModel.nam";
-  std::unique_ptr<nam::DSP> mModel = nam::get_dsp(mPath);
+  std::unique_ptr<nam::DSP> mModel = nam::get_dsp(MarshallModel);
 
   namTest(int sampleRate, int blockSize, int audioOutputs, int audioInputs) :
   audioTemplate<T>(sampleRate, blockSize, audioOutputs, audioInputs) {} // <- call base class constructor 
