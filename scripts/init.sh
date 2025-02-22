@@ -2,10 +2,10 @@
 
 cd ../..
 
-# get allolib_playground
-git clone https://github.com/allosphere-research-group/allolib_playground
+# get allolib-kickstart
+git clone https://github.com/joeljaffesd/allolib-kickstart
 
-cd allolib_playground 
+cd allolib-kickstart
 
 mv ../Jaffrack .
 
