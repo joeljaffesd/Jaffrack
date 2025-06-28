@@ -57,6 +57,9 @@ if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/al_ext")
   message("al_ext linking to ${AL_EXT_LIBRARIES}")
 endif()
 
+# add RTNeural to project
+add_subdirectory(RTNeural)
+
 if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
     # On macOS if jack is present, RtMidi will link to jack but not provide the
     # /usr/local/lib location as link directory. This statement only serves the
@@ -132,6 +135,10 @@ macro(BUILD_FILE  this_app_name this_app_path this_app_files_list)
     target_compile_options(${this_app_name} PRIVATE ${app_compile_flags})
     # Item names starting with -, but not -l or -framework, are treated as linker flags.
     target_link_libraries(${this_app_name} PRIVATE ${app_linker_flags})
+
+    # link RTNeural
+    target_link_libraries(${this_app_name} LINK_PUBLIC RTNeural)
+    target_include_directories(${this_app_name} PRIVATE ${CMAKE_CURRENT_LIST_DIR}/RTNeural/modules/rt-nam)
 endmacro()
 
 

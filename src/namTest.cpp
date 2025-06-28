@@ -2,21 +2,28 @@
 
 #include "../include/audioTemplate.hpp"
 #include "../Gimmel/include/gimmel.hpp"
-#include "../microNam/NAM/all.h"
-#include "../microNam/example_models/MarshallModel.h"
+#include "../include/ampModeler.hpp"
+#include "../nam_models/MarshallModel.h"
 
 template <typename T>
 struct namTest : audioTemplate<T> {
-  std::unique_ptr<nam::DSP> mModel = nam::get_dsp(MarshallModel);
+  giml::AmpModeler<T, MarshallModelLayer1, MarshallModelLayer2> mAmpModeler;
+  MarshallModelWeights mWeights; // Marshall model weights
 
   namTest(int sampleRate, int blockSize, int audioOutputs, int audioInputs) :
-  audioTemplate<T>(sampleRate, blockSize, audioOutputs, audioInputs) {} // <- call base class constructor 
+  audioTemplate<T>(sampleRate, blockSize, audioOutputs, audioInputs) // <- call base class constructor 
+  {  
+    mAmpModeler.enable();
+    mAmpModeler.loadModel(mWeights.weights); // Load the Marshall model weights
+  } 
 
   void onSound(AudioIOData &io) override {
-    this->mModel->process(io.outBuffer(), io.outBuffer(), io.framesPerBuffer());
-    this->mModel->finalize_(io.framesPerBuffer());
     while(io()) {
-      for (int channel = 1; channel < this->channelsOut; channel++) {
+      T in = io.in(0);
+      T dry = mAmpModeler.processSample(in); // Process input through the amp modeler
+      io.out(0) = dry;
+
+      for (int channel = 1; channel < io.channelsOut(); channel++) {
         io.out(channel) = io.out(0);
       }
     }

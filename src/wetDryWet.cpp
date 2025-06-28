@@ -2,44 +2,46 @@
 
 #include "../include/audioTemplate.hpp"
 #include "../Gimmel/include/gimmel.hpp"
-#include "../microNam/NAM/all.h"
-#include "../microNam/example_models/MarshallModel.h"
+#include "../include/ampModeler.hpp"
+#include "../nam_models/MarshallModel.h"
 
 template <typename T>
 struct wetDryWet : audioTemplate<T> {
-  std::unique_ptr<nam::DSP> mModel = nam::get_dsp(MarshallModel);
+  giml::AmpModeler<T, MarshallModelLayer1, MarshallModelLayer2> mAmpModeler;
+  MarshallModelWeights mWeights; // Marshall model weights
   giml::Detune<T> detuneL;  
   giml::Detune<T> detuneR;
   giml::Delay<T> longDelay; 
   giml::Delay<T> shortDelay;
 
   wetDryWet(int sampleRate, int blockSize, int audioOutputs, int audioInputs) :
-  audioTemplate<T>(sampleRate, blockSize, audioOutputs, audioInputs),
+  audioTemplate<T>(sampleRate, blockSize, audioOutputs, audioInputs), // <- call base class constructor 
   detuneL(sampleRate), detuneR(sampleRate), longDelay(sampleRate, 1000), shortDelay(sampleRate, 1000)
   {  
-     detuneL.enable();
-     detuneR.enable();
-     longDelay.enable();
-     shortDelay.enable();
-     detuneL.setPitchRatio(0.993);
-     detuneR.setPitchRatio(1.007);
-     longDelay.setDelayTime(798);
-     longDelay.setFeedback(0.20);
-     longDelay.setBlend(1.0);
-     longDelay.setDamping(0.7);
-     shortDelay.setDelayTime(398);
-     shortDelay.setFeedback(0.30);
-     shortDelay.setBlend(1.0);
-     shortDelay.setDamping(0.7);
-  } // <- call base class constructor 
+    mAmpModeler.enable();
+    mAmpModeler.loadModel(mWeights.weights); // Load the Marshall model weights
+    detuneL.enable();
+    detuneR.enable();
+    longDelay.enable();
+    shortDelay.enable();
+    detuneL.setPitchRatio(0.993);
+    detuneR.setPitchRatio(1.007);
+    longDelay.setDelayTime(798);
+    longDelay.setFeedback(0.20);
+    longDelay.setBlend(1.0);
+    longDelay.setDamping(0.7);
+    shortDelay.setDelayTime(398);
+    shortDelay.setFeedback(0.30);
+    shortDelay.setBlend(1.0);
+    shortDelay.setDamping(0.7);
+  } 
 
   void onSound(AudioIOData &io) override {
-    this->mModel->process(io.outBuffer(), io.outBuffer(), io.framesPerBuffer());
-    this->mModel->finalize_(io.framesPerBuffer());
     while(io()) {
-      T in = io.out(0);
-      io.out(0) = in + (0.31 * longDelay.processSample(detuneL.processSample(io.out(0))));
-      io.out(1) = in + (0.31 * shortDelay.processSample(detuneR.processSample(io.out(0))));
+      T in = io.in(0);
+      T dry = mAmpModeler.processSample(in); // Process input through the amp modeler
+      io.out(0) = dry + (0.31 * longDelay.processSample(detuneL.processSample(dry)));
+      io.out(1) = dry + (0.31 * shortDelay.processSample(detuneR.processSample(dry)));
 
       for (int channel = 2; channel < io.channelsOut(); channel++) {
         if (channel % 2 == 0) { io.out(channel) = io.out(0); } 

@@ -7,3 +7,6 @@
 [submodule "al_ext"]
 	path = al_ext
 	url = https://github.com/AlloSphere-Research-Group/al_ext
+[submodule "RTNeural"]
+	path = RTNeural
+	url = https://github.com/joeljaffesd/RTNeural
