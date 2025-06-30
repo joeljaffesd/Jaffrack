@@ -82,9 +82,40 @@ jobs:
           fi
         done
       shell: bash
-    
-    - name: List build artifacts
+
+    - name: Build summary
       run: |
-        echo "Bin directory contents:"
-        ls src/bin
+        echo "=== Build Summary ==="
+        cpp_count=$(find src -maxdepth 1 -name '*.cpp' | wc -l)
+        if [ -d "src/bin" ]; then
+          # Count executables differently based on OS
+          if [[ "$RUNNER_OS" == "Windows" ]]; then
+            exe_count=$(find src/bin -name '*.exe' -type f | wc -l)
+          else
+            # On Linux/macOS, count files without extensions (executable files)
+            exe_count=$(find src/bin -type f ! -name '*.*' | wc -l)
+          fi
+          
+          echo "Found ${cpp_count} C++ source files in src/"
+          echo "Found ${exe_count} executable files in src/bin/"
+          if [ $exe_count -eq $cpp_count ]; then
+            echo "📊 ${exe_count}/${cpp_count} examples compiled successfully"
+          else
+            echo "📉 ${exe_count}/${cpp_count} examples compiled successfully"
+            echo "❌ ERROR: Not all examples compiled successfully!"
+            exit 1
+          fi
+          echo ""
+          echo "Built executables:"
+          ls src/bin 2>/dev/null || echo "No executables found"
+        else
+          echo "Found ${cpp_count} C++ source files in src/"
+          echo "src/bin directory not found"
+          echo "📉 0/${cpp_count} examples compiled successfully"
+          echo "❌ ERROR: No binaries were built!"
+          exit 1
+        fi
+        echo ""
+        echo "Source files processed:"
+        ls src/*.cpp 2>/dev/null || echo "No .cpp files found"
       shell: bash
