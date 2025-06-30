@@ -30,8 +30,6 @@ jobs:
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
-      with:
-        submodules: recursive
     
     - name: Install dependencies (Linux)
       if: matrix.os == 'ubuntu-22.04'
@@ -87,8 +85,6 @@ jobs:
     
     - name: List build artifacts
       run: |
-        echo "Build directory contents:"
-        find . -name "build" -type d -exec find {} -name "*.exe" -o -name "*_run" \; 2>/dev/null || true
-        echo "Binary directory contents:"
-        find . -name "bin" -type d -exec ls -la {} \; 2>/dev/null || true
+        echo "Bin directory contents:"
+        ls src/bin
       shell: bash
