@@ -2,7 +2,6 @@
 // Audio App for testing the impulse response of effects
 
 #include "../include/audioTemplate.hpp"
-
 #include "../Gimmel/include/gimmel.hpp"
 
 template <typename T>

@@ -1,5 +1,3 @@
-#define NAM_SAMPLE_FLOAT
-
 #include "../include/audioTemplate.hpp"
 #include "../Gimmel/include/gimmel.hpp"
 #include "../include/ampModeler.hpp"
