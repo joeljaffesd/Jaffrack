@@ -1,4 +1,4 @@
-name: Multi-OS, Multi-Compiler Build
+name: Cross-Platform Build
 
 on:
   workflow_dispatch:

@@ -101,13 +101,18 @@ elif [ $(uname -s) == "Linux" ]; then
 elif [ $(uname -s) != MINGW64* ] && [ "${GENERATOR_PLATFORM}" != "x86" ]; then
     # WINDOWS_FLAGS=-DCMAKE_GENERATOR_PLATFORM=x64
     echo Building for Visual Studio
-      if [ ! -d "C:\Program Files (x86)\Microsoft Visual Studio\2017" ] && [ ! -d "C:\Program Files (x86)\Microsoft Visual Studio\2019" ]; then
+      if [ ! -d "C:\Program Files (x86)\Microsoft Visual Studio\2017" ] && [ ! -d "C:\Program Files (x86)\Microsoft Visual Studio\2019" ] && [ ! -d "C:\Program Files\Microsoft Visual Studio\2022" ]; then
         echo You must install Visual Studio 2017, 2019, or 2022 to use allolib
+    fi
+    if [ ! -f "${CMAKE_BINARY}" ]; then
+      CMAKE_BINARY="C:/Program Files/Microsoft Visual Studio/2022/Enterprise/Common7/IDE/CommonExtensions/Microsoft/CMake/CMake/bin/cmake.exe"
+      GENERATOR="Visual Studio 17 2022"
+      echo Tryng VS 2022 Enterprise build.
     fi
     if [ ! -f "${CMAKE_BINARY}" ]; then
       CMAKE_BINARY="C:/Program Files/Microsoft Visual Studio/2022/Community/Common7/IDE/CommonExtensions/Microsoft/CMake/CMake/bin/cmake.exe"
       GENERATOR="Visual Studio 17 2022"
-      echo Tryng VS 2022 build.
+      echo Tryng VS 2022 Community build.
     fi
     if [ ! -f "${CMAKE_BINARY}" ]; then
       CMAKE_BINARY="C:/Program Files (x86)/Microsoft Visual Studio/2022/Community/Common7/IDE/CommonExtensions/Microsoft/CMake/CMake/bin/cmake.exe"
@@ -115,19 +120,30 @@ elif [ $(uname -s) != MINGW64* ] && [ "${GENERATOR_PLATFORM}" != "x86" ]; then
       echo Tryng VS 2022 x86 build.
     fi
     if [ ! -f "${CMAKE_BINARY}" ]; then
+      CMAKE_BINARY="C:/Program Files/Microsoft Visual Studio/2019/Enterprise/Common7/IDE/CommonExtensions/Microsoft/CMake/CMake/bin/cmake.exe"
+      GENERATOR="Visual Studio 16 2019"
+      echo Tryng VS 2019 Enterprise build.
+    fi
+    if [ ! -f "${CMAKE_BINARY}" ]; then
       CMAKE_BINARY="C:/Program Files (x86)/Microsoft Visual Studio/2019/Community/Common7/IDE/CommonExtensions/Microsoft/CMake/CMake/bin/cmake.exe"
       GENERATOR="Visual Studio 16 2019"
-      echo Tryng VS 2019 build.
+      echo Tryng VS 2019 Community build.
+    fi
+    if [ ! -f "${CMAKE_BINARY}" ]; then
+      CMAKE_BINARY="C:/Program Files (x86)/Microsoft Visual Studio/2017/Enterprise/Common7/IDE/CommonExtensions/Microsoft/CMake/CMake/bin/cmake.exe"
+      GENERATOR="Visual Studio 15 2017 Win64"
+      echo Tryng VS 2017 Enterprise build.
     fi
     if [ ! -f "${CMAKE_BINARY}" ]; then
       CMAKE_BINARY="C:/Program Files (x86)/Microsoft Visual Studio/2017/BuildTools/Common7/IDE/CommonExtensions/Microsoft/CMake/CMake/bin/cmake.exe"
       GENERATOR="Visual Studio 15 2017 Win64"
-      echo Tryng VS 2017 build.
+      echo Tryng VS 2017 BuildTools build.
     fi
 
     if [ ! -f "${CMAKE_BINARY}" ]; then
       echo Trying to use cmake on PATH as Visual Studio Cmake not found.
       CMAKE_BINARY="cmake.exe"
+      GENERATOR="Visual Studio 17 2022"
     fi
 fi
 
