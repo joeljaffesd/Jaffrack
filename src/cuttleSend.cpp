@@ -1,7 +1,7 @@
 #include "../include/audioTemplate.hpp"
 #include "../Gimmel/include/gimmel.hpp"
 
-#include "../cuttlebone/Cuttlebone/Cuttlebone.hpp"
+#include "../al_ext/statedistribution/cuttlebone/Cuttlebone/Cuttlebone.hpp"
 using namespace cuttlebone;
 
 #define MAIN

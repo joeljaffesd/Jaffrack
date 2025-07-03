@@ -4,7 +4,7 @@
 #include "../include/graphicsTemplate.hpp"
 #include "../include/graphicsUtility.hpp"
 
-#include "../cuttlebone/Cuttlebone/Cuttlebone.hpp"
+#include "../al_ext/statedistribution/cuttlebone/Cuttlebone/Cuttlebone.hpp"
 using namespace cuttlebone;
 
 #include "state.hpp"
