@@ -7,7 +7,7 @@ struct gtrPatch : audioTemplate<T> {
   giml::Detune<T> detune;
   giml::Compressor<T> compressor;
   giml::Delay<T> delay;
-  giml::onePole<T> loPass;
+  giml::OnePole<T> loPass;
 
   // configure objects in constructor 
   gtrPatch(int sampleRate, int blockSize, int audioOutputs, int audioInputs) :

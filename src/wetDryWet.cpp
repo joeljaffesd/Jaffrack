@@ -7,6 +7,7 @@ template <typename T>
 struct wetDryWet : audioTemplate<T> {
   giml::AmpModeler<T, MarshallModelLayer1, MarshallModelLayer2> mAmpModeler;
   MarshallModelWeights mWeights; // Marshall model weights
+  giml::Expander<T> noiseGate; // Expander effect
   giml::Detune<T> detuneL;  
   giml::Detune<T> detuneR;
   giml::Delay<T> longDelay; 
@@ -14,10 +15,13 @@ struct wetDryWet : audioTemplate<T> {
 
   wetDryWet(int sampleRate, int blockSize, int audioOutputs, int audioInputs) :
   audioTemplate<T>(sampleRate, blockSize, audioOutputs, audioInputs), // <- call base class constructor 
-  detuneL(sampleRate), detuneR(sampleRate), longDelay(sampleRate, 1000), shortDelay(sampleRate, 1000)
+  noiseGate(sampleRate), detuneL(sampleRate), detuneR(sampleRate), longDelay(sampleRate, 1000), shortDelay(sampleRate, 1000)
   {  
     mAmpModeler.enable();
     mAmpModeler.loadModel(mWeights.weights); // Load the Marshall model weights
+    noiseGate.setParams(-50.f, 4.f, 5.f);
+    noiseGate.enable();
+    noiseGate.toggleSideChain(true);
     detuneL.enable();
     detuneR.enable();
     longDelay.enable();
@@ -37,7 +41,9 @@ struct wetDryWet : audioTemplate<T> {
   void onSound(AudioIOData &io) override {
     while(io()) {
       T in = io.in(0);
+      noiseGate.feedSideChain(in); // Feed the noise gate with the input signal
       T dry = mAmpModeler.processSample(in); // Process input through the amp modeler
+      dry = noiseGate.processSample(dry); // Apply noise gate
       io.out(0) = dry + (0.31 * longDelay.processSample(detuneL.processSample(dry)));
       io.out(1) = dry + (0.31 * shortDelay.processSample(detuneR.processSample(dry)));
 
