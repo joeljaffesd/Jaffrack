@@ -169,9 +169,13 @@ public:
    * @brief overridable query function. 
    * Default checks if xy is inside frame and color fills if so
    */
-  inline virtual void query(Vec2f xy) {
-    if (this->inside(xy, this->frame)) {this->frame.primitive(Mesh::TRIANGLE_FAN);} 
-    else {this->frame.primitive(Mesh::LINE_LOOP);}
+  inline virtual bool query(Vec2f xy) {
+    if (this->inside(xy, this->frame)) {
+      this->frame.primitive(Mesh::TRIANGLE_FAN);
+      return true;
+    } 
+    this->frame.primitive(Mesh::LINE_LOOP);
+    return false;
   }
 
   /**
@@ -247,6 +251,13 @@ public: // member functions
     for (int i = 0; i < elements.size(); i++) {
       elements[i].query(xy);
     }
+  }
+
+  /**
+   * @brief returns reference to elements vector
+   */
+  std::vector<Element>& getElements() {
+    return elements;
   }
 
 };
