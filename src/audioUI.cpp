@@ -8,9 +8,11 @@
 using namespace cuttlebone;
 
 #include "state.hpp"
+#include "shade.hpp"
 
 #include "al/math/al_Functions.hpp"
 #include "../allolib/include/al/io/al_File.hpp"
+#include "../allolib/include/al/graphics/al_ShaderManager.hpp"
 
 // Image-loader
 struct ImageHandler {
@@ -18,6 +20,9 @@ struct ImageHandler {
   al::Texture mTexture;
   bool initted = false;
   unsigned width, height;
+
+  // Expose texture for shader use
+  al::Texture& texture() { return mTexture; }
 
   ImageHandler() {
     // Create a quad mesh (vertex then texCoord for each vertex)
@@ -88,8 +93,11 @@ struct audioUI : graphicsTemplate<T> {
   Oscilloscope oscope{48000,  -0.25};
   float phase = 0.f;
   bool yesMode = false;
+  bool tieDyeMode = false;
 
   ImageHandler mImageHandler;
+  ShadedMesh mTieMesh;
+  bool mTieShaderLoaded = false;
 
   void onInit() override {
     taker.start();
@@ -105,6 +113,20 @@ struct audioUI : graphicsTemplate<T> {
     this->fullScreenToggle();
     this->cursorHideToggle();
     std::cout << al::File::currentPath() << std::endl;
+
+    // Prepare tie-dye ShadedMesh (fullscreen quad) and load shaders
+    mTieMesh.primitive(al::Mesh::TRIANGLE_STRIP);
+    mTieMesh.vertex(-1, -1, 0); mTieMesh.texCoord(0, 0);
+    mTieMesh.vertex(1, -1, 0);  mTieMesh.texCoord(1, 0);
+    mTieMesh.vertex(-1, 1, 0);  mTieMesh.texCoord(0, 1);
+    mTieMesh.vertex(1, 1, 0);   mTieMesh.texCoord(1, 1);
+    mTieMesh.update();
+
+    mTieShaderLoaded = mTieMesh.setShaders("../../shaders/tie.vert", "../../shaders/tie.frag");
+    if (!mTieShaderLoaded) {
+      std::cerr << "Tie-dye shader failed to load." << std::endl;
+    }
+
     mImageHandler.loadImage("../../media/yes.jpeg");
   }
 
@@ -123,6 +145,19 @@ struct audioUI : graphicsTemplate<T> {
 
   bool onMouseDown(const Mouse& m) override {
     Vec2f pos = mouseNormCords(m.x(), m.y(), this->width(), this->height());
+
+    // Toggle tie-dye mode when second-from-left element is clicked (index 1)
+    auto &elts = menu.getElements();
+    if (tieDyeMode) {
+      tieDyeMode = false;
+      return true;
+    }
+    
+    if (elts.size() > 1 && elts[1].query(pos)) {
+      tieDyeMode = !tieDyeMode;
+      return true;
+    }
+
     if (!yesMode) {
       auto elem = menu.getElements()[0];
       if (elem.query(pos)) {
@@ -139,6 +174,14 @@ struct audioUI : graphicsTemplate<T> {
     graphicsTemplate<T>::onDraw(g); // call base class onDraw() 
     if (yesMode) {
       mImageHandler.draw(g); // draw image
+    } else if (tieDyeMode) {
+      // Use tie shader to draw fullscreen effect using the image texture as tex0
+      if (!mTieShaderLoaded) {
+        // shader not available: draw image as fallback
+        mImageHandler.draw(g);
+      } else {
+        g.draw(mTieMesh);
+      }
     } else {
       menu.draw(g); // draw menu
       g.draw(oscope);
