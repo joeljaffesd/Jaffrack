@@ -8,7 +8,7 @@ using namespace cuttlebone;
 #include "wetDryWet.cpp"
 
 #ifndef STATE_HPP
-#include "state.hpp"
+#include "../include/state.hpp"
 #endif
 
 template <typename T>

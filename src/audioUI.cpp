@@ -1,91 +1,26 @@
-// Joel A. Jaffe 2024-07-09
+// Joel A. Jaffe 2025-12-25
 // User Interface App for Audio Applications
 
+// Jaffrack includes
 #include "../include/graphicsTemplate.hpp"
 #include "../include/graphicsUtility.hpp"
-#include "../allolib/include/al/graphics/al_Image.hpp"
-#include "../al_ext/statedistribution/cuttlebone/Cuttlebone/Cuttlebone.hpp"
-using namespace cuttlebone;
+#include "../include/shadedMesh.hpp"
+#include "../include/imageHandler.hpp"
+#include "../include/state.hpp"
 
-#include "state.hpp"
-#include "shade.hpp"
-
+// al includes
 #include "al/math/al_Functions.hpp"
 #include "../allolib/include/al/io/al_File.hpp"
-#include "../allolib/include/al/graphics/al_ShaderManager.hpp"
+#include "../allolib/include/al/math/al_Random.hpp"
+#include "../al_ext/statedistribution/cuttlebone/Cuttlebone/Cuttlebone.hpp"
 
-// Image-loader
-struct ImageHandler {
-  al::Mesh mQuad;
-  al::Texture mTexture;
-  bool initted = false;
-  unsigned width, height;
 
-  // Expose texture for shader use
-  al::Texture& texture() { return mTexture; }
-
-  ImageHandler() {
-    // Create a quad mesh (vertex then texCoord for each vertex)
-    mQuad.primitive(al::Mesh::TRIANGLE_STRIP);
-    mQuad.vertex(-1, -1, 0); mQuad.texCoord(0, 0);
-    mQuad.vertex(1, -1, 0);  mQuad.texCoord(1, 0);
-    mQuad.vertex(-1, 1, 0);  mQuad.texCoord(0, 1);
-    mQuad.vertex(1, 1, 0);   mQuad.texCoord(1, 1);
-  }
-
-  void init(al::App& mApp) {
-    if (!initted) {
-      width = mApp.width();
-      height = mApp.height();
-      mTexture.create2D(width, height);
-      initted = true;
-    } 
-  }
-
-  void loadImage(const std::string& path) {
-    Image imageData(path);
-
-    if (imageData.array().empty() || !imageData.loaded()) {
-      cout << "failed to load image " << path << endl;
-      return;
-    }
-
-    unsigned int iw = imageData.width();
-    unsigned int ih = imageData.height();
-    cout << "loaded image size: " << iw << ", " << ih << endl;
-
-    // Create texture sized to image
-    mTexture.create2D(iw, ih);
-    mTexture.filter(al::Texture::LINEAR);
-    mTexture.wrap(al::Texture::CLAMP_TO_EDGE);
-
-    // Image::array() is RGBA with top-left origin. OpenGL expects bottom-left.
-    // Flip vertically so the image appears upright.
-    std::vector<uint8_t> flipped;
-    flipped.resize(imageData.array().size());
-    const uint8_t *src = imageData.array().data();
-    int rowBytes = iw * 4;
-    for (unsigned y = 0; y < ih; ++y) {
-      const uint8_t *rowSrc = src + (ih - 1 - y) * rowBytes;
-      uint8_t *rowDst = flipped.data() + y * rowBytes;
-      memcpy(rowDst, rowSrc, rowBytes);
-    }
-
-    mTexture.submit(flipped.data(), GL_RGBA, GL_UNSIGNED_BYTE);
-  }
-
-  void draw(al::Graphics& g) {
-    mTexture.bind();
-    g.texture(); // Use texture for mesh coloring
-    g.draw(mQuad);
-    mTexture.unbind();
-  }
-};
+#define MAX_NOW 15000.f
 
 // app struct
 template <typename T>
 struct audioUI : graphicsTemplate<T> {
-  Taker<SharedState> taker;
+  cuttlebone::Taker<SharedState> taker;
   SharedState* localState = new SharedState;
   Scope scope;
   Element button{Vec2f(0,0), 2.f, 2.f, 0.25f};
@@ -96,12 +31,16 @@ struct audioUI : graphicsTemplate<T> {
   bool tieDyeMode = false;
 
   ImageHandler mImageHandler;
-  ShadedMesh mTieMesh;
-  bool mTieShaderLoaded = false;
+  ShadedMesh mJuliaMesh;
+
+  al::Parameter now {"now", "", 0.f, 0.f, MAX_NOW};
 
   void onInit() override {
     taker.start();
     mImageHandler.init(dynamic_cast<al::App&>(*this));
+    
+    // randomize now parameter at init time
+    now = al::rnd::uniform(0.f, MAX_NOW);
   }
   
   void onCreate() override {
@@ -114,26 +53,23 @@ struct audioUI : graphicsTemplate<T> {
     this->cursorHideToggle();
     std::cout << al::File::currentPath() << std::endl;
 
-    // Prepare tie-dye ShadedMesh (fullscreen quad) and load shaders
-    mTieMesh.primitive(al::Mesh::TRIANGLE_STRIP);
-    mTieMesh.vertex(-1, -1, 0); mTieMesh.texCoord(0, 0);
-    mTieMesh.vertex(1, -1, 0);  mTieMesh.texCoord(1, 0);
-    mTieMesh.vertex(-1, 1, 0);  mTieMesh.texCoord(0, 1);
-    mTieMesh.vertex(1, 1, 0);   mTieMesh.texCoord(1, 1);
-    mTieMesh.update();
-
-    mTieShaderLoaded = mTieMesh.setShaders("../../shaders/tie.vert", "../../shaders/tie.frag");
-    if (!mTieShaderLoaded) {
-      std::cerr << "Tie-dye shader failed to load." << std::endl;
-    }
 
     mImageHandler.loadImage("../../media/yes.jpeg");
+    std::cout << "audioUI: Image loaded." << std::endl;
+
+    mJuliaMesh.seed();
+    std::cout << "audioUI: Julia mesh seeded." << std::endl;
   }
 
   void onAnimate(double dt) override {
     taker.get(*localState);
     for (int i = 0; i < 48000; i++) {
       oscope.vertices()[i][1] = (oscope.yCoord + localState->readSample(47999 - i)) * (1 - std::fabs(oscope.yCoord));
+    }
+
+    now = now + float(dt);
+    if (now >= MAX_NOW - 1.f) {
+      now = 0.f;
     }
   }
 
@@ -150,11 +86,13 @@ struct audioUI : graphicsTemplate<T> {
     auto &elts = menu.getElements();
     if (tieDyeMode) {
       tieDyeMode = false;
+      std::cout << "audioUI: Tie-dye mode disabled." << std::endl;
       return true;
     }
     
     if (elts.size() > 1 && elts[1].query(pos)) {
       tieDyeMode = !tieDyeMode;
+      std::cout << "audioUI: Tie-dye mode toggled to " << (tieDyeMode ? "on" : "off") << "." << std::endl;
       return true;
     }
 
@@ -174,19 +112,15 @@ struct audioUI : graphicsTemplate<T> {
     graphicsTemplate<T>::onDraw(g); // call base class onDraw() 
     if (yesMode) {
       mImageHandler.draw(g); // draw image
-    } else if (tieDyeMode) {
-      // Use tie shader to draw fullscreen effect using the image texture as tex0
-      if (!mTieShaderLoaded) {
-        // shader not available: draw image as fallback
-        mImageHandler.draw(g);
-      } else {
-        g.draw(mTieMesh);
-      }
-    } else {
+    } 
+    else if (tieDyeMode) {
+      mJuliaMesh.draw(g);
+    } 
+    else {
       menu.draw(g); // draw menu
       g.draw(oscope);
     }
-
+    mJuliaMesh.setUniformFloat("u_time", now);
   }
 };
 

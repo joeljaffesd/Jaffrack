@@ -1,3 +1,6 @@
+#ifndef GRAPHICS_UTILITY_HPP
+#define GRAPHICS_UTILITY_HPP
+
 #include "../Gimmel/include/utility.hpp"
 #include "al/app/al_App.hpp"
 using namespace al;
@@ -342,3 +345,5 @@ struct Scope {
 
   void draw(Graphics &g){g.draw(mesh);}
 };
+
+#endif // GRAPHICS_UTILITY_HPP
