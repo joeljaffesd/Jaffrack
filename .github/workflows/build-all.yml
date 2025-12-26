@@ -18,12 +18,10 @@ jobs:
     
     strategy:
       matrix:
-        os: [ubuntu-22.04, windows-latest, macos-latest]
+        os: [ubuntu-22.04, macos-latest]
         include:
           - os: ubuntu-22.04
             name: Linux
-          - os: windows-latest
-            name: Windows
           - os: macos-latest
             name: macOS
     
@@ -65,13 +63,8 @@ jobs:
         echo "=== Build Summary ==="
         cpp_count=$(find src -maxdepth 1 -name '*.cpp' | wc -l)
         if [ -d "src/bin" ]; then
-          # Count executables differently based on OS
-          if [[ "$RUNNER_OS" == "Windows" ]]; then
-            exe_count=$(find src/bin -name '*.exe' -type f | wc -l)
-          else
-            # On Linux/macOS, count files without extensions (executable files)
-            exe_count=$(find src/bin -type f ! -name '*.*' | wc -l)
-          fi
+          # Count executables (files without extensions on Linux/macOS)
+          exe_count=$(find src/bin -type f ! -name '*.*' | wc -l)
           
           echo "Found ${cpp_count} C++ source files in src/"
           echo "Found ${exe_count} executable files in src/bin/"
