@@ -1,3 +1,4 @@
+#!/bin/bash
 # Script for starting the graphics app.
 # I have part I executed by ~/.profile and part II executed by ~/.xinitrc
 

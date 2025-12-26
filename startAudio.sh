@@ -1,3 +1,4 @@
+#!/bin/bash
 # Script for starting the audio app.
 # I have this executed by ~/.profile
 
