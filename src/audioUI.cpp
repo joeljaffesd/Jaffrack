@@ -15,7 +15,7 @@
 #include "../al_ext/statedistribution/cuttlebone/Cuttlebone/Cuttlebone.hpp"
 
 
-#define MAX_NOW 15000.f
+#define MAX_NOW 5000.f
 
 // app struct
 template <typename T>
@@ -67,7 +67,7 @@ struct audioUI : graphicsTemplate<T> {
       oscope.vertices()[i][1] = (oscope.yCoord + localState->readSample(47999 - i)) * (1 - std::fabs(oscope.yCoord));
     }
 
-    now = now + float(dt);
+    now = now + float(dt) * 0.5f;
     if (now >= MAX_NOW - 1.f) {
       now = 0.f;
     }
@@ -126,6 +126,8 @@ struct audioUI : graphicsTemplate<T> {
 
 int main() {
   audioUI<float> app;
+  app.configureAudio(44100, 512, 0, 0);  // Disables audio by setting channels to 0
+  app.fps(30);
   app.start();
   return 0;
 }
