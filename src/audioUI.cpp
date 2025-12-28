@@ -29,11 +29,13 @@ struct audioUI : graphicsTemplate<T> {
   float phase = 0.f;
   bool yesMode = false;
   bool tieDyeMode = false;
+  bool mute = false;
 
   ImageHandler mImageHandler;
   ShadedMesh mJuliaMesh;
-
+  
   al::Parameter now {"now", "", 0.f, 0.f, MAX_NOW};
+  osc::Send sender{9010, "10.0.0.1"};
 
   void onInit() override {
     taker.start();
@@ -81,9 +83,8 @@ struct audioUI : graphicsTemplate<T> {
 
   bool onMouseDown(const Mouse& m) override {
     Vec2f pos = mouseNormCords(m.x(), m.y(), this->width(), this->height());
-
-    // Toggle tie-dye mode when second-from-left element is clicked (index 1)
     auto &elts = menu.getElements();
+
     if (tieDyeMode) {
       tieDyeMode = false;
       std::cout << "audioUI: Tie-dye mode disabled." << std::endl;
@@ -103,6 +104,13 @@ struct audioUI : graphicsTemplate<T> {
       }
     } else {
       yesMode = !yesMode;
+    }
+
+    if (elts.size() > 5 && elts[5].query(pos)) {
+      mute = !mute;
+      osc::Packet p;
+      p.addMessage("/mute", mute ? 1.f : 0.f);
+      sender.send(p);
     }
 
     return true;
