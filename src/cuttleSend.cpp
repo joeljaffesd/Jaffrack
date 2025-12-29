@@ -5,6 +5,7 @@
 using namespace cuttlebone;
 
 #include "al/ui/al_ParameterServer.hpp"
+#include "Gamma/SamplePlayer.h"  // XXX
 
 #define MAIN
 #include "wetDryWet.cpp"
@@ -19,6 +20,7 @@ struct cuttleSend : wetDryWet<T> {
   Maker<SharedState> maker;
   SharedState* localState = new SharedState;
   float gain = 1.f;
+  gam::SamplePlayer<float, gam::ipl::Linear> player;
 
   ParameterBool mute {"mute", "", false};
   al::ParameterServer parameterServer {"0.0.0.0", 9010};
@@ -27,16 +29,16 @@ struct cuttleSend : wetDryWet<T> {
   wetDryWet<T>(sampleRate, blockSize, audioOutputs, audioInputs), targetAddress(target), maker(target)
   {
     maker.start();
+
+
+    if (!player.load("../../media/huckFinn.wav")) {
+      std::cout << "Failed to load audio file" << std::endl;
+    }
+
     parameterServer.verbose(true);
     parameterServer.registerParameter(mute);
     mute.registerChangeCallback([this](float value) {
-      if (value <= 0.5f) {
-        gain = 0.f;
-      } 
-      else {
-        gain = 1.f;
-      }
-      std::cout << "Mute set to " << (value <= 0.5f ? "ON" : "OFF") << std::endl;
+      player.reset();
     });
   }
 
@@ -44,8 +46,9 @@ struct cuttleSend : wetDryWet<T> {
     wetDryWet<T>::onSound(io);
     for (int sample = 0; sample < this->blockSize; sample++) {
       float amp = 0.f;
+      player.advance();
       for (int channel = 0; channel < this->channelsOut; channel++){
-        io.out(channel, sample) *= gain;
+        io.out(channel, sample) += player.read(0);
         amp += io.out(channel, sample);
       }
       amp /= this->channelsOut;
