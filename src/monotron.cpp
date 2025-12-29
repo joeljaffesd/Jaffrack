@@ -20,17 +20,37 @@ struct Monotron : public al::App {
   bool mute = true;
 
   bool onMouseDown(Mouse const & m) { 
+    Vec2f pos = mouseNormCords(m.x(), m.y(), this->width(), this->height());
+    // disable in control sector
+    if (pos.y > 0.5f) {
+      mute = true;
+      return true;
+    }    
     mute = false;
     return true; 
   }
 
   bool onMouseUp(Mouse const & m) { 
+    Vec2f pos = mouseNormCords(m.x(), m.y(), this->width(), this->height());
+    // disable in control sector
+    if (pos.y > 0.5f) {
+      mute = true;
+      return true;
+    }
+
     mute = true;
     return true; 
   }
 
-  bool onMouseDrag(Mouse const & m) { 
+  bool onMouseDrag(Mouse const & m) {
     Vec2f pos = mouseNormCords(m.x(), m.y(), this->width(), this->height());
+
+    // disable in control sector
+    if (pos.y > 0.5f) {
+      mute = true;
+      return true;
+    }
+
     float freq = al::mapRange(pos.x, -1.f, 1.f, 55.f, 880.f);
     osc.setFrequency(freq);
     return true; 
