@@ -116,6 +116,14 @@ struct audioUI : graphicsTemplate<T> {
     return true;
   }
 
+  bool onMouseUp(const Mouse& m) override {
+    auto &elts = menu.getElements();
+    for (auto &e : elts) {
+      e.deselect();
+    }
+    return true;
+  }
+
   void onDraw(Graphics& g) override {
     graphicsTemplate<T>::onDraw(g); // call base class onDraw() 
     if (yesMode) {

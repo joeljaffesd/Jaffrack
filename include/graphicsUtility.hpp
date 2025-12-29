@@ -182,6 +182,14 @@ public:
   }
 
   /**
+   * @brief overridable query function. 
+   * Default checks if xy is inside frame and color fills if so
+   */
+  inline virtual void deselect() {
+    this->frame.primitive(Mesh::LINE_LOOP);
+  }
+
+  /**
    * @brief function that checks if xy is inside a mesh
    * @param xy 
    * @param m mesh
