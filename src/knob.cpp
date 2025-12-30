@@ -30,6 +30,8 @@ private:
   const float startAngleDeg = -45.f;
   const float maxEndAngleDeg = 225.f;
 
+  float currentParamValue = 0.f; // normalized [0,1] value
+
 public:
   // methods
   void seed() {
@@ -80,6 +82,11 @@ public:
     mIndicatorLine.scale(scale);
   }
 
+  void printState() {
+    printf("Knob angle: %.2f degrees\n", currentEndAngleDeg);
+    printf("Knob param value: %.3f\n", currentParamValue);
+  }
+
   void mouseEvent(Vec2f normalizedPos) {
     Vec2f diff = normalizedPos - this->center;
     float angle = atan2(diff[1], diff[0]) * 180.0f / M_PI;
@@ -92,6 +99,7 @@ public:
     angle = startAngleDeg + (maxEndAngleDeg - angle);
 
     this->currentEndAngleDeg = angle;
+    this->currentParamValue = al::mapRange(angle, -45.f, 225.f, 0.f, 1.f);
     updateIndicator(this->currentEndAngleDeg * M_PI / 180.f);
   }
 
@@ -133,6 +141,7 @@ struct KnobApp : public al::App {
 
   bool onMouseUp(Mouse const & m) { 
     Vec2f pos = mouseNormCords(m.x(), m.y(), this->width(), this->height());
+    mKnob.printState();
     return true;
   }
 
