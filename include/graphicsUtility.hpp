@@ -83,7 +83,8 @@ class Element {
 private:
   Vec2f center = Vec2f(0, 0);
   float width = 1.f, height = 1.f, padding = 0;
-  Mesh frame, content;
+  Mesh frame; 
+  std::vector<Mesh*> content;
   Color frameColor = HSV(0, 0, 1), contentColor = HSV(0, 0, 1);
 
 public:
@@ -100,7 +101,7 @@ public:
     frame.primitive(Mesh::LINE_LOOP);
   }
 
-  // Copy constructor
+  // Copy constructor - deep copy content meshes
   Element(const Element& e) {
     this->center = e.center;
     this->width = e.width;
@@ -109,7 +110,53 @@ public:
     this->frameColor = e.frameColor;
     this->contentColor = e.contentColor;
     this->frame.copy(e.frame);
-    this->content.copy(e.content);
+    
+    // Deep copy content meshes
+    for (const auto* meshPtr : e.content) {
+      if (meshPtr) {
+        al::Mesh* newMesh = new al::Mesh();
+        newMesh->copy(*meshPtr);
+        this->content.push_back(newMesh);
+      }
+    }
+  }
+
+  // Destructor - clean up dynamically allocated meshes
+  ~Element() {
+    for (auto* meshPtr : content) {
+      delete meshPtr;
+    }
+    content.clear();
+  }
+
+  // Copy assignment operator - proper deep copy
+  Element& operator=(const Element& e) {
+    if (this != &e) {
+      // Clean up existing content
+      for (auto* meshPtr : content) {
+        delete meshPtr;
+      }
+      content.clear();
+      
+      // Copy all members
+      center = e.center;
+      width = e.width;
+      height = e.height;
+      padding = e.padding;
+      frameColor = e.frameColor;
+      contentColor = e.contentColor;
+      frame.copy(e.frame);
+      
+      // Deep copy content meshes
+      for (const auto* meshPtr : e.content) {
+        if (meshPtr) {
+          al::Mesh* newMesh = new al::Mesh();
+          newMesh->copy(*meshPtr);
+          content.push_back(newMesh);
+        }
+      }
+    }
+    return *this;
   }
 
   /**
@@ -117,10 +164,18 @@ public:
    * @param m mesh to be copied
    */
   void addContent(Mesh& m) {
-    this->content.copy(m); // copies input mesh... could this be done better?
-    content.unitize(); // unitize for scaling
-    content.scale((std::sqrt(width*width + height*height) * (1 - padding)) / std::sqrt(8)); // scale
-    content.translate(center[0], center[1]); // snap to center of frame
+    al::Mesh* meshPtr = new al::Mesh();
+    meshPtr->copy(m);
+    meshPtr->unitize(); // unitize for scaling
+    meshPtr->scale((std::sqrt(width*width + height*height) * (1 - padding)) / std::sqrt(8)); // scale
+    meshPtr->translate(center[0], center[1]); // snap to center of frame
+    
+    // Set colors to the element's content color
+    for (int i = 0; i < meshPtr->colors().size(); i++) {
+      meshPtr->colors()[i] = contentColor;
+    }
+    
+    this->content.emplace_back(meshPtr); // store pointer
   }
 
   /**
@@ -129,7 +184,9 @@ public:
   void snap(Vec2f xy) {
     center = xy;
     snapTo(frame, xy);
-    snapTo(content, xy);
+    for (auto& mesh : content) {
+      snapTo(*mesh, xy);
+    }
   }
 
   /**
@@ -140,7 +197,9 @@ public:
     width = width * s;
     height = height * s;
     this->frame.scale(s);
-    this->content.scale(s);
+    for (auto& mesh : content) {
+      mesh->scale(s);
+    }
   }
 
   /**
@@ -148,8 +207,10 @@ public:
    */
   void unit() {
     this->frame.unitize();
-    this->content.unitize();
-    this->content.scale((1 - this->padding));
+    for (auto& mesh : content) {
+      mesh->unitize();
+      mesh->scale((1 - this->padding));
+    }
   }
 
   /**
@@ -159,7 +220,9 @@ public:
    */
   void color(Color frameColor = HSV(0, 0, 1), Color contentColor = HSV(0, 0, 1)) {
     for (int i = 0; i < frame.colors().size(); i++) {frame.colors()[i] = frameColor;}
-    for (int i = 0; i < content.colors().size(); i++) {content.colors()[i] = frameColor;}
+    for (auto& mesh : content) {
+      for (int i = 0; i < mesh->colors().size(); i++) {mesh->colors()[i] = frameColor;}
+    }
   }
 
   /**
@@ -168,7 +231,9 @@ public:
    */
   void draw(Graphics& g) {
     g.draw(frame);
-    g.draw(content);
+    for (auto& mesh : content) {
+      g.draw(*mesh);
+    }
   }
 
   /**

@@ -17,13 +17,33 @@
 
 #define MAX_NOW 5000.f
 
+struct SineButton : public Element {
+  SineEmblem mSineEmblem;
+
+  SineButton() = delete;
+  SineButton(al::Vec2f center = al::Vec2f(0,0), 
+          float width = 2.f, 
+          float height = 2.f, 
+          float padding = 0, 
+          al::Color frameColor = HSV(0, 0, 1), 
+          al::Color contentColor = HSV(0, 0, 1)) : 
+          Element(center, width, height, padding, frameColor, contentColor)
+  {}  
+
+  void seed() {
+    mSineEmblem.seed();
+    this->addContent(mSineEmblem.mesh);
+  }
+
+};
+
 // app struct
 template <typename T>
 struct audioUI : graphicsTemplate<T> {
   cuttlebone::Taker<SharedState> taker;
   SharedState* localState = new SharedState;
-  SineEmblem mSineEmblem;
-  Element button{Vec2f(0,0), 2.f, 2.f, 0.25f};
+  // SineEmblem mSineEmblem;
+  std::vector<SineButton> buttons;
   Container menu{Vec2f(0,0.85), 2.f, 0.25f, 0.25f};
   Oscilloscope oscope{48000,  -0.25};
   float phase = 0.f;
@@ -46,9 +66,11 @@ struct audioUI : graphicsTemplate<T> {
   }
   
   void onCreate() override {
-    mSineEmblem.seed();
-    button.addContent(mSineEmblem.mesh);
-    for (int i = 0; i < 6; i++) {
+    for (size_t i = 0; i < 6; i++) {
+      buttons.push_back(SineButton(Vec2f(0,0), 2.f, 2.f, 0.25f));
+      buttons[i].seed();
+    }
+    for (auto& button : buttons) {
       menu.addElement(button);
     }
     this->fullScreenToggle();
