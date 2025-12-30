@@ -336,7 +336,7 @@ private:
 	giml::CircularBuffer<float> buffer;
 };
 
-struct Scope {
+struct SineEmblem {
   // member variables
   Vec2f anchor = Vec2f(0, 0.7);
   float width = 2.f, height = 1.f, padding = 0.1f;
@@ -354,13 +354,13 @@ struct Scope {
                   std::sin(unit * i * 2 * M_2PI)); // y
       mesh.color(HSV(0,0,1)); // color
     }
-    //mesh.scale((width - padding)/width, (height + std::abs(anchor[1]) - 2*padding) / (2));
     mesh.scale(0.7);
     mesh.translate(0, -0.15f);
-    //mesh.translate(anchor[0], -0.15f);
   }
 
-  void draw(Graphics &g){g.draw(mesh);}
+  void draw(Graphics& g) {
+    g.draw(mesh);
+  }
 };
 
 #endif // GRAPHICS_UTILITY_HPP

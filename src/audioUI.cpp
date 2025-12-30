@@ -22,7 +22,7 @@ template <typename T>
 struct audioUI : graphicsTemplate<T> {
   cuttlebone::Taker<SharedState> taker;
   SharedState* localState = new SharedState;
-  Scope scope;
+  SineEmblem mSineEmblem;
   Element button{Vec2f(0,0), 2.f, 2.f, 0.25f};
   Container menu{Vec2f(0,0.85), 2.f, 0.25f, 0.25f};
   Oscilloscope oscope{48000,  -0.25};
@@ -46,8 +46,8 @@ struct audioUI : graphicsTemplate<T> {
   }
   
   void onCreate() override {
-    scope.seed();
-    button.addContent(scope.mesh);
+    mSineEmblem.seed();
+    button.addContent(mSineEmblem.mesh);
     for (int i = 0; i < 6; i++) {
       menu.addElement(button);
     }
