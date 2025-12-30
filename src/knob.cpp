@@ -108,9 +108,22 @@ struct KnobApp : public al::App {
   // audio stuff
   giml::SinOsc<float> osc{48000}; // oscillator at 48kHz sample rate
   bool mute = true;
+  
+  // graphics
+  float aspectRatioScale = 1.f;
 
   void onCreate() override {
     mKnob.seed();
+  }
+
+  void onResize(int w, int h) override {
+    // Calculate aspect ratio scale to maintain perfect circle
+    float aspectRatio = static_cast<float>(w) / h;
+    if (aspectRatio > 1.f) {
+      aspectRatioScale = 1.f / aspectRatio;  // Window wider than tall
+    } else {
+      aspectRatioScale = aspectRatio;  // Window taller than wide
+    }
   }
 
   bool onMouseDown(Mouse const & m) { 
@@ -129,12 +142,20 @@ struct KnobApp : public al::App {
     return true; 
   }
 
-
   void onDraw(Graphics& g) override {
     g.clear(0); // black background
     g.meshColor(); // sets color mode 
     g.camera(Viewpoint::IDENTITY); // set camera pos to view unit space
+    
+    // Apply pre-calculated aspect ratio scale
+    g.pushMatrix();
+    if (aspectRatioScale != 1.f) {
+      float isWide = (aspectRatioScale < 1.f) ? 1.f : 0.f;
+      g.scale(isWide ? aspectRatioScale : 1.f, isWide ? 1.f : aspectRatioScale, 1.f);
+    }
+    
     mKnob.draw(g); // draw knob
+    g.popMatrix();
   }
 };
 
