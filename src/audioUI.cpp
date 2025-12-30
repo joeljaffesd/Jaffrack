@@ -43,7 +43,6 @@ struct audioUI : graphicsTemplate<T> {
   cuttlebone::Taker<SharedState> taker;
   SharedState* localState = new SharedState;
   // SineEmblem mSineEmblem;
-  std::vector<SineButton> buttons;
   Container menu{Vec2f(0,0.85), 2.f, 0.25f, 0.25f};
   Oscilloscope oscope{48000,  -0.25};
   float phase = 0.f;
@@ -66,12 +65,11 @@ struct audioUI : graphicsTemplate<T> {
   }
   
   void onCreate() override {
+    // Create 6 buttons and add them to container
     for (size_t i = 0; i < 6; i++) {
-      buttons.push_back(SineButton(Vec2f(0,0), 2.f, 2.f, 0.25f));
-      buttons[i].seed();
-    }
-    for (auto& button : buttons) {
-      menu.addElement(button);
+      auto button = std::make_unique<SineButton>(Vec2f(0,0), 2.f, 2.f, 0.25f);
+      button->seed();
+      menu.addElement(std::move(button));
     }
     this->fullScreenToggle();
     this->cursorHideToggle();
@@ -113,22 +111,22 @@ struct audioUI : graphicsTemplate<T> {
       return true;
     }
     
-    if (elts.size() > 1 && elts[1].query(pos)) {
+    if (elts.size() > 1 && elts[1]->query(pos)) {
       tieDyeMode = !tieDyeMode;
       std::cout << "audioUI: Tie-dye mode toggled to " << (tieDyeMode ? "on" : "off") << "." << std::endl;
       return true;
     }
 
     if (!yesMode) {
-      auto elem = menu.getElements()[0];
-      if (elem.query(pos)) {
+      auto& elem = menu.getElements()[0];
+      if (elem->query(pos)) {
         yesMode = !yesMode;
       }
     } else {
       yesMode = !yesMode;
     }
 
-    if (elts.size() > 5 && elts[5].query(pos)) {
+    if (elts.size() > 5 && elts[5]->query(pos)) {
       mute = !mute;
       osc::Packet p;
       p.addMessage("/mute", mute ? 1.f : 0.f);
@@ -141,7 +139,7 @@ struct audioUI : graphicsTemplate<T> {
   bool onMouseUp(const Mouse& m) override {
     auto &elts = menu.getElements();
     for (auto &e : elts) {
-      e.deselect();
+      e->deselect();
     }
     return true;
   }

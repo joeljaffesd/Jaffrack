@@ -122,7 +122,7 @@ public:
   }
 
   // Destructor - clean up dynamically allocated meshes
-  ~Element() {
+  virtual ~Element() {
     for (auto* meshPtr : content) {
       delete meshPtr;
     }
@@ -292,7 +292,7 @@ class Container {
 private: // member variables
   Vec2f center = Vec2f(0, 0);
   float width = 1.f, height = 1.f, padding = 0.f;
-  std::vector<Element> elements;
+  std::vector<std::unique_ptr<Element>> elements;
 
 public: // member functions
   Container() = delete;
@@ -304,19 +304,18 @@ public: // member functions
 
   /**
    * @brief Append elements and organize accordingly 
-   * @param e element to append
+   * @param e element to append (takes ownership)
    */
-  void addElement(Element& e) {
-    Element elem(e);
-    elements.push_back(elem); // append element
+  void addElement(std::unique_ptr<Element> e) {
+    elements.push_back(std::move(e)); // append element
     float eWidth = width/elements.size(); // calculate widths- this orients container horizontally
     float colorStep = 1.f / elements.size();
-    for (int i = 0; i < elements.size(); i++) { // for each element...
-      Vec2f target = center + Vec2f(-width/2 + eWidth*(i+0.5), 0); // calculate center
-      elements[i].unit(); // unitize 
-      elements[i].scale((eWidth/width) * (1 - padding)); // scale 
-      elements[i].snap(target); // move to target
-      elements[i].color (HSV(i * colorStep, 1, 1));
+    for (size_t i = 0; i < elements.size(); ++i) { // for each element...
+      Vec2f target = center + Vec2f(-width/2 + eWidth*(i+0.5f), 0); // calculate center
+      elements[i]->unit(); // unitize 
+      elements[i]->scale((eWidth/width) * (1 - padding)); // scale 
+      elements[i]->snap(target); // move to target
+      elements[i]->color (HSV(i * colorStep, 1, 1));
     }
   } 
 
@@ -325,8 +324,8 @@ public: // member functions
    * @param g graphics content
    */
   void draw(Graphics& g){ 
-    for (int i = 0; i < elements.size(); i++) {
-      elements[i].draw(g);
+    for (auto& elem : elements) {
+      elem->draw(g);
     }
   }
 
@@ -335,15 +334,15 @@ public: // member functions
    * @param xy coordinate to query
    */
   void query(Vec2f xy) {
-    for (int i = 0; i < elements.size(); i++) {
-      elements[i].query(xy);
+    for (auto& elem : elements) {
+      elem->query(xy);
     }
   }
 
   /**
    * @brief returns reference to elements vector
    */
-  std::vector<Element>& getElements() {
+  std::vector<std::unique_ptr<Element>>& getElements() {
     return elements;
   }
 
