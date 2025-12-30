@@ -88,15 +88,19 @@ private:
 
 public:
   Element() = delete;
-  Element(Vec2f center = Vec2f(0,0), float width = 2.f, float height = 2.f, 
-          float padding = 0, Color frameColor = HSV(0, 0, 1), Color contentColor = HSV(0, 0, 1)) : 
-            center(center), width(width), height(height), padding(padding), 
-            frameColor(frameColor), contentColor(contentColor) {
-              makeFrame(frame, width, height, center[0], center[1], frameColor);
-              frame.primitive(Mesh::LINE_LOOP);
+  Element(Vec2f center = Vec2f(0,0), 
+          float width = 2.f, 
+          float height = 2.f, 
+          float padding = 0, 
+          Color frameColor = HSV(0, 0, 1), 
+          Color contentColor = HSV(0, 0, 1)) : 
+          center(center), width(width), height(height), padding(padding), frameColor(frameColor), contentColor(contentColor) 
+  {
+    makeFrame(frame, width, height, center[0], center[1], frameColor);
+    frame.primitive(Mesh::LINE_LOOP);
   }
 
-  //Copy constructor
+  // Copy constructor
   Element(const Element& e) {
     this->center = e.center;
     this->width = e.width;
@@ -121,7 +125,6 @@ public:
 
   /**
    * @brief updates center and snaps meshes to it
-   * @param m mesh to be copied
    */
   void snap(Vec2f xy) {
     center = xy;
@@ -161,9 +164,9 @@ public:
 
   /**
    * @brief draws meshes
-   * @param g graphics context
+   * @param g `al::Graphics` object
    */
-  void draw(Graphics &g) {
+  void draw(Graphics& g) {
     g.draw(frame);
     g.draw(content);
   }
@@ -199,10 +202,15 @@ public:
     int checks = 0;
     Vec2f min, max;
     getBounds2d(m, min, max); // find bounds
+
     for (int i = 0; i < 2; i++) { // loop over dims
       if (xy[i] > min[i] && xy[i] < max[i]) {checks++;} // increment checks if in bounds
     }
-    if (checks == 2) {state = true;} // inside
+
+    if (checks == 2) {
+      state = true; // inside
+    } 
+
     return state;
   }
 };
@@ -223,7 +231,10 @@ private: // member variables
 
 public: // member functions
   Container() = delete;
-  Container(Vec2f center = Vec2f(0.f, 0.f), float width = 2.f, float height = 2.f, float padding = 0.f) : 
+  Container(Vec2f center = Vec2f(0.f, 0.f), 
+            float width = 2.f, 
+            float height = 2.f, 
+            float padding = 0.f) : 
             center(center), width(width), height(height), padding(padding) {}
 
   /**
@@ -248,7 +259,7 @@ public: // member functions
    * @brief Draw function 
    * @param g graphics content
    */
-  void draw(Graphics &g){ 
+  void draw(Graphics& g){ 
     for (int i = 0; i < elements.size(); i++) {
       elements[i].draw(g);
     }
@@ -306,9 +317,7 @@ public:
    */
 	void update() {
 		for (int i = 0; i < this->bufferSize; i++) {
-			this->vertices()[i][1] = ((yCoord + 
-                                this->buffer.readSample((size_t)(this->bufferSize - i)))
-                                * (1 - std::fabs(this->yCoord)));
+			this->vertices()[i][1] = ((yCoord + this->buffer.readSample((size_t)(this->bufferSize - i))) * (1 - std::fabs(this->yCoord)));
 		}
 	}
 
