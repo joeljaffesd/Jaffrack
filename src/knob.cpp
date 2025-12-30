@@ -19,7 +19,7 @@
 
 struct KnobApp : public al::App {
   // interface stuff
-  Knob mKnob;
+  Knob mKnob{Vec2f(0,0), 2.f, 2.f, 0.25f};
   
   // graphics
   float aspectRatioScale = 1.f;
@@ -39,12 +39,10 @@ struct KnobApp : public al::App {
   }
 
   bool onMouseDown(Mouse const & m) { 
-    Vec2f pos = mouseNormCords(m.x(), m.y(), this->width(), this->height());
     return true;
   }
 
   bool onMouseUp(Mouse const & m) { 
-    Vec2f pos = mouseNormCords(m.x(), m.y(), this->width(), this->height());
     mKnob.printState();
     return true;
   }
@@ -61,14 +59,14 @@ struct KnobApp : public al::App {
     g.camera(Viewpoint::IDENTITY); // set camera pos to view unit space
     
     // Apply pre-calculated aspect ratio scale
-    g.pushMatrix();
-    if (aspectRatioScale != 1.f) {
-      float isWide = (aspectRatioScale < 1.f) ? 1.f : 0.f;
-      g.scale(isWide ? aspectRatioScale : 1.f, isWide ? 1.f : aspectRatioScale, 1.f);
-    }
+    // g.pushMatrix();
+    // if (aspectRatioScale != 1.f) {
+    //   float isWide = (aspectRatioScale < 1.f) ? 1.f : 0.f;
+    //   g.scale(isWide ? aspectRatioScale : 1.f, isWide ? 1.f : aspectRatioScale, 1.f);
+    // }
     
     mKnob.draw(g); // draw knob
-    g.popMatrix();
+    // g.popMatrix();
   }
 };
 

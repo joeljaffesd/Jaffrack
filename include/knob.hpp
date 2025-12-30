@@ -5,13 +5,30 @@
 #include "al/graphics/al_Mesh.hpp"
 #include "al/graphics/al_Shapes.hpp"
 #include "al/math/al_Functions.hpp"
+#include "include/graphicsUtility.hpp"
 
-class Knob {
+// struct SineButton : public Element {
+//   SineEmblem mSineEmblem;
+
+//   SineButton() = delete;
+//   SineButton(al::Vec2f center = al::Vec2f(0,0), 
+//           float width = 2.f, 
+//           float height = 2.f, 
+//           float padding = 0, 
+//           al::Color frameColor = HSV(0, 0, 1), 
+//           al::Color contentColor = HSV(0, 0, 1)) : 
+//           Element(center, width, height, padding, frameColor, contentColor)
+//   {}  
+
+//   void seed() {
+//     mSineEmblem.seed();
+//     this->addContent(mSineEmblem.mesh);
+//   }
+
+// };
+
+class Knob : public Element {
 private:
-  al::Vec2f center = al::Vec2f(0.f, 0.f);
-  float width = 1.f, height = 1.f, padding = 0.1f;
-  float scale = (width - padding) * (height - padding) / (width * height);
-
   al::Mesh mOuterCircle;
   al::Mesh mInnerCircle;
   al::Mesh mIndicatorLine;
@@ -24,21 +41,38 @@ private:
   float currentParamValue = 0.f; // normalized [0,1] value
 
 public:
+
+  Knob() = delete;
+  Knob(al::Vec2f center = al::Vec2f(0,0), 
+          float width = 2.f, 
+          float height = 2.f, 
+          float padding = 0.1f, 
+          al::Color frameColor = HSV(0, 0, 1), 
+          al::Color contentColor = HSV(0, 0, 1)) : 
+          Element(center, width, height, padding, frameColor, contentColor)
+  {}
+
   // methods
   void seed() {
+    float knobScale = 0.8f; // Scale factor for knob meshes within element bounds
+    
     al::addCircle(mOuterCircle, 1.f, 64);
     for (int i = 0; i < mOuterCircle.vertices().size(); i++) {
       mOuterCircle.color(al::HSV(0, 0, 1)); // color
     }
-    mOuterCircle.scale(scale);
+    mOuterCircle.scale(knobScale);
 
     al::addCircle(mInnerCircle, 0.5f, 64);
     for (int i = 0; i < mInnerCircle.vertices().size(); i++) {
       mInnerCircle.color(al::HSV(0, 0, 1)); // color
     }
-    mInnerCircle.scale(scale);
+    mInnerCircle.scale(knobScale);
 
     updateIndicator(currentEndAngleDeg * M_PI / 180.f);
+
+    this->addContent(mOuterCircle);
+    this->addContent(mInnerCircle);
+    this->addContent(mIndicatorLine);
   }
 
   void updateIndicator(float newEndAngleInRadians) {
@@ -70,12 +104,19 @@ public:
     }
 
     // scale
-    mIndicatorLine.scale(scale);
+    mIndicatorLine.scale(0.8f); // Same scale factor as other knob meshes
   }
 
   void printState() {
     printf("Knob angle: %.2f degrees\n", currentEndAngleDeg);
     printf("Knob param value: %.3f\n", currentParamValue);
+  }
+
+  /**
+   * @brief disable querying for knob (not clickable)
+   */
+  inline virtual bool query(Vec2f xy) {
+    return false;
   }
 
   void mouseEvent(al::Vec2f normalizedPos) {
@@ -94,9 +135,20 @@ public:
     updateIndicator(this->currentEndAngleDeg * M_PI / 180.f);
   }
 
-  void draw(al::Graphics& g) {
+  // Override draw to properly position knob meshes
+  void draw(al::Graphics& g) override {
+    // Draw frame if desired
+    // Element::draw(g);
+    
+    // Draw knob meshes centered on the element
+    g.pushMatrix();
+    g.translate(center[0], center[1]);
+    g.scale(width * (1 - padding) * 0.5f); // Scale to fit within element bounds
+    
     g.draw(mOuterCircle);
     g.draw(mIndicatorLine);
+    
+    g.popMatrix();
   }
 };
 

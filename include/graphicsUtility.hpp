@@ -80,7 +80,7 @@ struct Icon : public Mesh {
  * @param contentColor determines color of content
  */
 class Element {
-private:
+protected:
   Vec2f center = Vec2f(0, 0);
   float width = 1.f, height = 1.f, padding = 0;
   Mesh frame; 
@@ -229,7 +229,7 @@ public:
    * @brief draws meshes
    * @param g `al::Graphics` object
    */
-  void draw(Graphics& g) {
+  virtual void draw(Graphics& g) {
     g.draw(frame);
     for (auto& mesh : content) {
       g.draw(*mesh);
