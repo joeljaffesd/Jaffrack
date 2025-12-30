@@ -7,26 +7,6 @@
 #include "al/math/al_Functions.hpp"
 #include "include/graphicsUtility.hpp"
 
-// struct SineButton : public Element {
-//   SineEmblem mSineEmblem;
-
-//   SineButton() = delete;
-//   SineButton(al::Vec2f center = al::Vec2f(0,0), 
-//           float width = 2.f, 
-//           float height = 2.f, 
-//           float padding = 0, 
-//           al::Color frameColor = HSV(0, 0, 1), 
-//           al::Color contentColor = HSV(0, 0, 1)) : 
-//           Element(center, width, height, padding, frameColor, contentColor)
-//   {}  
-
-//   void seed() {
-//     mSineEmblem.seed();
-//     this->addContent(mSineEmblem.mesh);
-//   }
-
-// };
-
 class Knob : public Element {
 private:
   al::Mesh mOuterCircle;
@@ -113,10 +93,12 @@ public:
   }
 
   /**
-   * @brief disable querying for knob (not clickable)
+   * @brief check if xy is within the knob's circular area
    */
-  inline virtual bool query(Vec2f xy) {
-    return false;
+  inline virtual bool query(Vec2f xy) override {
+    Vec2f diff = xy - center;
+    float distance = sqrt(diff[0] * diff[0] + diff[1] * diff[1]);
+    return distance <= (width * (1 - padding) * 0.5f);
   }
 
   void mouseEvent(al::Vec2f normalizedPos) {

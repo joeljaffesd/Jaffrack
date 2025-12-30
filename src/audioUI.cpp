@@ -17,9 +17,11 @@
 
 #define MAX_NOW 5000.f
 
-struct SineButton : public Element {
+class SineButton : public Element {
+private:  
   SineEmblem mSineEmblem;
 
+public:  
   SineButton() = delete;
   SineButton(al::Vec2f center = al::Vec2f(0,0), 
           float width = 2.f, 
@@ -28,7 +30,7 @@ struct SineButton : public Element {
           al::Color frameColor = HSV(0, 0, 1), 
           al::Color contentColor = HSV(0, 0, 1)) : 
           Element(center, width, height, padding, frameColor, contentColor)
-  {}  
+  {}
 
   void seed() {
     mSineEmblem.seed();
@@ -42,7 +44,6 @@ template <typename T>
 struct audioUI : graphicsTemplate<T> {
   cuttlebone::Taker<SharedState> taker;
   SharedState* localState = new SharedState;
-  // SineEmblem mSineEmblem;
   Container menu{Vec2f(0,0.85), 2.f, 0.25f, 0.25f};
   Oscilloscope oscope{48000,  -0.25};
   float phase = 0.f;

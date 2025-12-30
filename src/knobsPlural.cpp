@@ -33,12 +33,9 @@ struct KnobsPlural : public al::App {
     Vec2f pos = mouseNormCords(m.x(), m.y(), this->width(), this->height());
     for (auto& elemPtr : menu.getElements()) {
       Knob* mKnob = dynamic_cast<Knob*>(elemPtr.get());
-      if (mKnob) {
+      if (mKnob && mKnob->query(pos)) {
         mKnob->mouseEvent(pos);
         mKnob->printState();
-      }
-      else {
-        std::cout << "Warning: Element is not a Knob!" << std::endl;
       }
     }
     return true;

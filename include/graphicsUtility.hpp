@@ -81,11 +81,13 @@ struct Icon : public Mesh {
  */
 class Element {
 protected:
-  Vec2f center = Vec2f(0, 0);
-  float width = 1.f, height = 1.f, padding = 0;
   Mesh frame; 
   std::vector<Mesh*> content;
   Color frameColor = HSV(0, 0, 1), contentColor = HSV(0, 0, 1);
+
+public:
+  Vec2f center = Vec2f(0, 0);
+  float width = 1.f, height = 1.f, padding = 0;
 
 public:
   Element() = delete;
@@ -219,6 +221,8 @@ public:
    * @param contentColor
    */
   void color(Color frameColor = HSV(0, 0, 1), Color contentColor = HSV(0, 0, 1)) {
+    this->frameColor = frameColor;
+    this->contentColor = contentColor;
     for (int i = 0; i < frame.colors().size(); i++) {frame.colors()[i] = frameColor;}
     for (auto& mesh : content) {
       for (int i = 0; i < mesh->colors().size(); i++) {mesh->colors()[i] = frameColor;}
@@ -230,10 +234,16 @@ public:
    * @param g `al::Graphics` object
    */
   virtual void draw(Graphics& g) {
+    g.pushMatrix();
+    g.translate(center[0], center[1]);
+    g.scale(width * 0.5f, height * 0.5f); // Frame was created with size 2x2, scale to actual size
+    
     g.draw(frame);
     for (auto& mesh : content) {
       g.draw(*mesh);
     }
+    
+    g.popMatrix();
   }
 
   /**
@@ -241,7 +251,10 @@ public:
    * Default checks if xy is inside frame and color fills if so
    */
   inline virtual bool query(Vec2f xy) {
-    if (this->inside(xy, this->frame)) {
+    // Transform xy to local coordinates (inverse of draw transformations)
+    Vec2f local_xy = (xy - center) / Vec2f(width * 0.5f, height * 0.5f);
+    
+    if (this->inside(local_xy, this->frame)) {
       this->frame.primitive(Mesh::TRIANGLE_FAN);
       return true;
     } 
@@ -307,15 +320,19 @@ public: // member functions
    * @param e element to append (takes ownership)
    */
   void addElement(std::unique_ptr<Element> e) {
+    size_t newIndex = elements.size();
     elements.push_back(std::move(e)); // append element
-    float eWidth = width/elements.size(); // calculate widths- this orients container horizontally
+    
+    // Calculate layout for all elements
+    float eWidth = width / elements.size(); // width per element
     float colorStep = 1.f / elements.size();
-    for (size_t i = 0; i < elements.size(); ++i) { // for each element...
+    
+    for (size_t i = 0; i < elements.size(); ++i) {
       Vec2f target = center + Vec2f(-width/2 + eWidth*(i+0.5f), 0); // calculate center
-      elements[i]->unit(); // unitize 
-      elements[i]->scale((eWidth/width) * (1 - padding)); // scale 
-      elements[i]->snap(target); // move to target
-      elements[i]->color (HSV(i * colorStep, 1, 1));
+      elements[i]->center = target; // set center directly
+      elements[i]->width = eWidth * (1 - padding); // set width
+      elements[i]->height = height * (1 - padding); // set height
+      elements[i]->color(HSV(i * colorStep, 1, 1));
     }
   } 
 
