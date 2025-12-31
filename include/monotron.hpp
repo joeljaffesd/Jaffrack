@@ -147,13 +147,15 @@ private:
   // audio stuff
   giml::SinOsc<float> osc{48000}; // oscillator at 48kHz sample rate
   LFO lfo{48000};
-  float q = 5.f;
-  float cutoff = 12000.f;
   CustomDelay delay{48000}; // 0.5 second delay line at 48kHz
-  bool keyboardMute = true;
-  bool bypass = true;
-  float freqStash = 0.f;
-  float intensity = 0.f; // LFO intensity
+  ParameterBool keyboardMute = {"monotronKeyboardMute", "", true};
+  ParameterBool bypass = {"monotronBypass", "", true};
+  Parameter freqStash = {"monotronFreqStash", "", 0.f, 59.f, 4806.f};
+  Parameter intensity = {"monotronIntensity", "", 0.f, 0.f, 1.f}; // LFO intensity
+  Parameter rateStash = {"monotronRateStash", "", 0.f, (1 / 46.03f), 426.95f};
+  Parameter cutoffStash = {"monotronCutoffStash", "", 0.f, 43.f, 11600.f};
+  Parameter delayTimeStash = {"monotronDelayTimeStash", "", 0.f, 35.7f, 1090.f};
+  Parameter feedbackStash = {"monotronFeedbackStash", "", 0.f, 0.f, 1.2f};
 
 public:
   void seed() {
@@ -178,22 +180,23 @@ public:
       Knob* mKnob = dynamic_cast<Knob*>(elemPtr.get());
       if (mKnob) {
         if (mKnob == menu.getElements()[2].get()) {
-          float lfoRate = mapParam(mKnob->getCurrentParamValue(), (1 / 46.03f), 426.95f, 3.13f);
-          lfo.setFrequency(lfoRate); // scale freq
+          rateStash = mapParam(mKnob->getCurrentParamValue(), (1 / 46.03f), 426.95f, 3.13f);
+          lfo.setFrequency(rateStash); // scale freq
         }
         else if (mKnob == menu.getElements()[3].get()) {
           intensity = mKnob->getCurrentParamValue(); // scale intensity
         }
         else if (mKnob == menu.getElements()[4].get()) {
-          float cutoffFreq = mapParam(mKnob->getCurrentParamValue(), 43.f, 11600.f, 1204.f);
-          delay.setCutoff(cutoffFreq);
+          cutoffStash = mapParam(mKnob->getCurrentParamValue(), 43.f, 11600.f, 1204.f);
+          delay.setCutoff(cutoffStash);
         }
         else if (mKnob == menu.getElements()[5].get()) {
-          float delayTimeMS = mapParam(mKnob->getCurrentParamValue(), 35.7f, 1090.f, 576.f);
-          delay.setDelayTime(delayTimeMS); // scale delay time
+          delayTimeStash = mapParam(mKnob->getCurrentParamValue(), 35.7f, 1090.f, 576.f);
+          delay.setDelayTime(delayTimeStash); // scale delay time
         }
         else if (mKnob == menu.getElements()[6].get()) {
-          delay.setFeedback(mKnob->getCurrentParamValue() * 1.2f); // scale feedback
+          feedbackStash = mKnob->getCurrentParamValue() * 1.2f;
+          delay.setFeedback(feedbackStash); // scale feedback
         }
       }
     }  
@@ -249,22 +252,23 @@ public:
         mKnob->mouseEvent(normalizedPos);
         mKnob->printState();
         if (mKnob == menu.getElements()[2].get()) {
-          float lfoRate = mapParam(mKnob->getCurrentParamValue(), (1 / 46.03f), 426.95f, 3.13f);
-          lfo.setFrequency(lfoRate); // scale freq
+          rateStash = mapParam(mKnob->getCurrentParamValue(), (1 / 46.03f), 426.95f, 3.13f);
+          lfo.setFrequency(rateStash); // scale freq
         }
         else if (mKnob == menu.getElements()[3].get()) {
           intensity = mKnob->getCurrentParamValue(); // scale intensity
         }
         else if (mKnob == menu.getElements()[4].get()) {
-          float cutoffFreq = mapParam(mKnob->getCurrentParamValue(), 43.f, 11600.f, 1204.f);
-          delay.setCutoff(cutoffFreq);
+          cutoffStash = mapParam(mKnob->getCurrentParamValue(), 43.f, 11600.f, 1204.f);
+          delay.setCutoff(cutoffStash);
         }
         else if (mKnob == menu.getElements()[5].get()) {
-          float delayTimeMS = mapParam(mKnob->getCurrentParamValue(), 35.7f, 1090.f, 576.f);
-          delay.setDelayTime(delayTimeMS); // scale delay time
+          delayTimeStash = mapParam(mKnob->getCurrentParamValue(), 35.7f, 1090.f, 576.f);
+          delay.setDelayTime(delayTimeStash); // scale delay time
         }
         else if (mKnob == menu.getElements()[6].get()) {
-          delay.setFeedback(mKnob->getCurrentParamValue() * 1.2f); // scale feedback
+          feedbackStash = mKnob->getCurrentParamValue() * 1.2f;
+          delay.setFeedback(feedbackStash); // scale feedback
         }
       }
     }
@@ -293,10 +297,33 @@ public:
     bypass = ibypass;
     freqStash = ifreqStash;
     lfo.setFrequency(ilfoFreq);
+    rateStash = ilfoFreq;
     intensity = iintensity;
     delay.setCutoff(idelayCutoff);
+    cutoffStash = idelayCutoff;
     delay.setDelayTime(idelayTime);
+    delayTimeStash = idelayTime;
     delay.setFeedback(idelayFeedback); 
+    feedbackStash = idelayFeedback;
+  }
+
+  void getParameters(bool& ikeyboardMute,
+                     bool& ibypass,
+                     float& ifreqStash,
+                     float& ilfoFreq,
+                     float& iintensity,
+                     float& idelayCutoff,
+                     float& idelayTime,
+                     float& idelayFeedback) 
+  {
+    ikeyboardMute = keyboardMute;
+    ibypass = bypass;
+    ifreqStash = freqStash;
+    ilfoFreq = rateStash;
+    iintensity = intensity;
+    idelayCutoff = cutoffStash;
+    idelayTime = delayTimeStash;
+    idelayFeedback = feedbackStash;
   }
 
   void draw(Graphics& g) {
