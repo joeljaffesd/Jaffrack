@@ -118,6 +118,10 @@ public:
       updateVisual();
     }
   }
+
+  int getCurrentChoice() const {
+    return currentChoice;
+  }
     
 };
 

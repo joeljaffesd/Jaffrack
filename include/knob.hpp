@@ -113,6 +113,10 @@ public:
     updateIndicator(this->currentEndAngleDeg * M_PI / 180.f);
   }
 
+  float getCurrentParamValue() {
+    return currentParamValue;
+  }
+
   // Override draw to properly position knob meshes
   void draw(al::Graphics& g) override {
     // Draw frame if desired
