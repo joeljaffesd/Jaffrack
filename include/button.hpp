@@ -47,52 +47,33 @@ private:
   int numChoices = 3;
   int currentChoice = 0;
   std::vector<std::string> choices {"Choice 1", "Choice 2", "Choice 3"};
-  std::vector<al::FontRenderer> choiceFontRenderers;
+  std::vector<al::Mesh> choiceMeshes;
 
-  al::Mesh createMeshForChoice(int choice) {
-    al::Mesh m;
-    if (choice == 0) {
-      // Triangle
-      m.primitive(al::Mesh::TRIANGLES);
-      m.vertex(0, 0.8f);
-      m.vertex(-0.8f, -0.8f);
-      m.vertex(0.8f, -0.8f);
-    } else if (choice == 1) {
-      // Square
-      m.primitive(al::Mesh::TRIANGLE_FAN);
-      m.vertex(0, 0); // center
-      m.vertex(-0.6f, -0.6f);
-      m.vertex(0.6f, -0.6f);
-      m.vertex(0.6f, 0.6f);
-      m.vertex(-0.6f, 0.6f);
-      m.vertex(-0.6f, -0.6f); // close the fan
-    } else if (choice == 2) {
-      // Circle
-      m.primitive(al::Mesh::TRIANGLE_FAN);
-      float radius = 0.6f;
-      m.vertex(0, 0); // center
-      int segments = 32;
-      for (int i = 0; i <= segments; ++i) {
-        float angle = i * 2.0f * M_PI / segments;
-        m.vertex(radius * cos(angle), radius * sin(angle));
-      }
-    }
-    for (size_t i = 0; i < m.vertices().size(); ++i) {
-      m.color(this->contentColor);
-    }
-    return m;
+  int getSubsectionFromLocalX(float localX) {
+    // localX expected in [-1,1]
+    if (localX < -1.0f/3.0f) return 0;
+    if (localX < 1.0f/3.0f) return 1;
+    return 2;
   }
 
   void updateVisual() {
-    // Clear existing content
-    for (auto* meshPtr : this->content) {
-      delete meshPtr;
+    // Ensure meshes populated
+    if (choiceMeshes.size() != (size_t)numChoices) return;
+
+    // Update primitives and colors to reflect active/hovered states
+    for (size_t i = 0; i < choiceMeshes.size(); ++i) {
+      if ((int)i == currentChoice) {
+        choiceMeshes[i].primitive(al::Mesh::TRIANGLE_FAN);
+      } else {
+        choiceMeshes[i].primitive(al::Mesh::LINE_LOOP);
+      }
+
+      // set uniform color: highlight active in white, otherwise contentColor
+      al::Color c = (i == (size_t)currentChoice) ? al::Color(1,1,1) : this->contentColor;
+      for (size_t v = 0; v < choiceMeshes[i].vertices().size(); ++v) {
+        choiceMeshes[i].colors()[v] = c;
+      }
     }
-    this->content.clear();
-    
-    // Add new mesh
-    al::Mesh newMesh = createMeshForChoice(currentChoice);
-    this->addContent(newMesh);
   }
 
 public:
@@ -108,13 +89,71 @@ public:
 
   // methods
   void seed() {
+    for (int i = 0; i < numChoices; i++) {
+        
+      // Add new mesh to append to the choiceMeshes vector
+      Mesh choiceMesh; // add mesh
+      choiceMesh.primitive(Mesh::LINE_LOOP);
+
+      // build rectangle in element-local coordinates (x,y) in [-1,1]
+      float choiceWidthLocal = 2.0f / numChoices; // total width is 2 in local coords
+      float choiceHeightLocal = 1.6f; // a bit inset vertically
+      float centerXLocal = -1.0f + choiceWidthLocal * (i + 0.5f);
+      float halfW = choiceWidthLocal * 0.5f;
+      float halfH = choiceHeightLocal * 0.5f;
+
+      choiceMesh.vertex(centerXLocal - halfW, -halfH);
+      choiceMesh.vertex(centerXLocal + halfW, -halfH);
+      choiceMesh.vertex(centerXLocal + halfW, halfH);
+      choiceMesh.vertex(centerXLocal - halfW, halfH);
+
+      for (size_t v = 0; v < choiceMesh.vertices().size(); ++v) {
+        choiceMesh.color(this->contentColor);
+      }
+      choiceMeshes.push_back(std::move(choiceMesh));
+      // this->addContent(choiceMesh);
+    }    
     updateVisual();
   }
 
+  inline bool query(Vec2f xy) {
+    // Transform xy to local coordinates (inverse of draw transformations)
+    Vec2f local_xy = (xy - center) / Vec2f(width * 0.5f, height * 0.5f);
+
+    if (this->inside(local_xy, this->frame)) {
+      int newChoice = getSubsectionFromLocalX(local_xy[0]);
+      if (newChoice != currentChoice) {
+        currentChoice = newChoice;
+        updateVisual();
+      }
+      this->frame.primitive(Mesh::TRIANGLE_FAN);
+      return true;
+    }
+
+    this->frame.primitive(Mesh::LINE_LOOP);
+    return false;
+  }  
+
+  // Override draw to properly position knob meshes
+  void draw(al::Graphics& g) override {
+    // Draw frame if desired
+    Element::draw(g);
+    // g.draw(frame);
+    
+    // Draw knob meshes centered on the element
+    g.pushMatrix();
+    g.translate(center[0], center[1]);
+    g.scale(width * (1 - padding) * 0.5f); // Scale to fit within element bounds
+    
+    for (const auto& mesh : choiceMeshes) {
+      g.draw(mesh);
+    }
+    
+    g.popMatrix();
+  }
 
   void onClick(al::Vec2f normMousePos) {
     if (this->query(normMousePos)) {
-      currentChoice = (currentChoice + 1) % numChoices;
       updateVisual();
     }
   }
