@@ -15,9 +15,25 @@
 #include "../allolib/include/al/math/al_Random.hpp"
 #include "../al_ext/statedistribution/cuttlebone/Cuttlebone/Cuttlebone.hpp"
 
+#include "../include/knob.hpp"
+
 struct Monotron : public al::App {
+  
+  // interface stuff
+  Container menu{Vec2f(0, 0.75), 2.f, 0.25f, 0.1f};
+
+  // audio stuff
   giml::SinOsc<float> osc{48000}; // oscillator at 48kHz sample rate
   bool mute = true;
+
+  void onCreate() override {
+    // Create 6 knobs and add them to container
+    for (size_t i = 0; i < 6; i++) {
+      auto knob = std::make_unique<Knob>(Vec2f(0,0), 2.f, 2.f, 0.25f);
+      knob->seed();
+      menu.addElement(std::move(knob));
+    }
+  }  
 
   bool onMouseDown(Mouse const & m) { 
     Vec2f pos = mouseNormCords(m.x(), m.y(), this->width(), this->height());
@@ -44,6 +60,14 @@ struct Monotron : public al::App {
 
   bool onMouseDrag(Mouse const & m) {
     Vec2f pos = mouseNormCords(m.x(), m.y(), this->width(), this->height());
+    
+    for (auto& elemPtr : menu.getElements()) {
+      Knob* mKnob = dynamic_cast<Knob*>(elemPtr.get());
+      if (mKnob && mKnob->query(pos)) {
+        mKnob->mouseEvent(pos);
+        mKnob->printState();
+      }
+    }
 
     // disable in control sector
     if (pos.y > 0.5f) {
@@ -69,6 +93,7 @@ struct Monotron : public al::App {
     g.clear(0); // black background
     g.meshColor(); // sets color mode 
     g.camera(Viewpoint::IDENTITY); // set camera pos to view unit space
+    menu.draw(g);
   }
 };
 
