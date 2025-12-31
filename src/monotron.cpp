@@ -16,6 +16,7 @@
 #include "../al_ext/statedistribution/cuttlebone/Cuttlebone/Cuttlebone.hpp"
 
 #include "../include/knob.hpp"
+#include "../include/button.hpp"
 
 struct Monotron : public al::App {
   
@@ -27,8 +28,17 @@ struct Monotron : public al::App {
   bool mute = true;
 
   void onCreate() override {
-    // Create 6 knobs and add them to container
-    for (size_t i = 0; i < 6; i++) {
+
+    auto button = std::make_unique<Button>(Vec2f(0,0), 2.f, 2.f, 0.25f);
+    button->seed();
+    menu.addElement(std::move(button));
+
+    auto radioButton = std::make_unique<RadioButton>(Vec2f(0,0), 2.f, 2.f, 0.25f);
+    radioButton->seed();
+    menu.addElement(std::move(radioButton));
+
+    // Create 5 knobs and add them to container
+    for (size_t i = 0; i < 5; i++) {
       auto knob = std::make_unique<Knob>(Vec2f(0,0), 2.f, 2.f, 0.25f);
       knob->seed();
       menu.addElement(std::move(knob));
@@ -37,6 +47,14 @@ struct Monotron : public al::App {
 
   bool onMouseDown(Mouse const & m) { 
     Vec2f pos = mouseNormCords(m.x(), m.y(), this->width(), this->height());
+    
+    const auto& elements = menu.getElements();
+    // Check if button was clicked
+    RadioButton* rButton = dynamic_cast<RadioButton*>(elements[1].get());
+    if (rButton) {
+      rButton->onClick(pos);
+    }
+    
     // disable in control sector
     if (pos.y > 0.5f) {
       mute = true;
@@ -57,6 +75,12 @@ struct Monotron : public al::App {
     mute = true;
     return true; 
   }
+
+  bool onMouseMove(const Mouse& m) override {
+    Vec2f pos = mouseNormCords(m.x(), m.y(), this->width(), this->height());
+    menu.query(pos);
+    return true;
+  }   
 
   bool onMouseDrag(Mouse const & m) {
     Vec2f pos = mouseNormCords(m.x(), m.y(), this->width(), this->height());

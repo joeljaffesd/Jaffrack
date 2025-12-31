@@ -49,10 +49,6 @@ public:
     mInnerCircle.scale(knobScale);
 
     updateIndicator(currentEndAngleDeg * M_PI / 180.f);
-
-    this->addContent(mOuterCircle);
-    this->addContent(mInnerCircle);
-    this->addContent(mIndicatorLine);
   }
 
   void updateIndicator(float newEndAngleInRadians) {
@@ -120,7 +116,8 @@ public:
   // Override draw to properly position knob meshes
   void draw(al::Graphics& g) override {
     // Draw frame if desired
-    // Element::draw(g);
+    Element::draw(g);
+    // g.draw(frame);
     
     // Draw knob meshes centered on the element
     g.pushMatrix();
