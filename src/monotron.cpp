@@ -18,6 +18,100 @@
 #include "../include/knob.hpp"
 #include "../include/button.hpp"
 
+
+class CustomDelay : public giml::Effect<float> {
+private:
+  int sampleRate;
+  float feedback = 0.3, delayTime = 398.0, blend = 0.5, damping = 0.5;
+  giml::SVF<float> loPass{48000}; // loPass filter for damping
+  giml::OnePole<float> dcBlock; // See Generating Sound & Organizing Time I - Wakefield and Taylor 2022 Chapter 7 pg. 204
+  giml::CircularBuffer<float> buffer; // circular buffer to store past  values
+
+public:
+  // Constructor
+  CustomDelay() = delete;
+  CustomDelay(int samprate, float maxDelayMillis = 3000) : sampleRate(samprate) {
+    this->buffer.allocate(giml::millisToSamples(maxDelayMillis, samprate)); // max delayTime is 3 seconds
+    this->loPass.setParams(12000.f, 1.f, samprate); // set damping
+    this->dcBlock.setCutoff(3.0, samprate);// set dcBlock at 3Hz
+  }
+
+  // Destructor
+  ~CustomDelay() {}
+
+  // Copy constructor
+  CustomDelay(const CustomDelay& d) {
+    this->enabled = d.enabled;
+    this->sampleRate = d.sampleRate;
+    this->feedback = d.feedback;
+    this->delayTime = d.delayTime;
+    this->blend = d.blend;
+    this->damping = d.damping;
+    this->loPass = d.loPass;
+    this->dcBlock = d.dcBlock;
+    this->buffer = d.buffer;
+  }
+
+  // Copy assignment operator 
+  CustomDelay& operator=(const CustomDelay& d) {
+    this->enabled = d.enabled;
+    this->sampleRate = d.sampleRate;
+    this->feedback = d.feedback;
+    this->delayTime = d.delayTime;
+    this->blend = d.blend;
+    this->damping = d.damping;
+    this->loPass = d.loPass;
+    this->dcBlock = d.dcBlock;
+    this->buffer = d.buffer;
+    return *this;
+  }
+  
+  /**
+   * @brief Writes and returns sample from delay line blended with input
+   * @param in input sample
+   * @return `in * 1-blend + y_D * blend`
+   */
+  inline float processSample(const float& in) {
+    // calling `millisToSamples` every sample is not performant 
+    float readIndex = giml::millisToSamples(this->delayTime, this->sampleRate); // calculate read index
+    loPass(this->buffer.readSample(readIndex) + in);
+    float y_0 = loPass.loPass(); // read from buffer and loPass
+    this->buffer.writeSample(this->dcBlock.hpf(giml::limit<float>(y_0 * this->feedback, 0.75))); // write sample to delay buffer
+    if (!(this->enabled)) { return in; } 
+    return y_0; 
+  }
+
+  /**
+   * @brief sets params delayTime, feedback, damping, and blend
+   */
+  void setParams(float delayTime = 398.0, float feedback = 0.3) {
+    this->setDelayTime(delayTime);
+    this->setFeedback(feedback);
+  }
+
+  /**
+   * @brief Set delay time
+   * @param sizeMillis delay time in milliseconds. 
+   * Clamped to `samplesToMillis(bufferSize)`
+   */
+  void setDelayTime(float sizeMillis) { 
+    this->delayTime = giml::clip<float>(sizeMillis, 0, giml::samplesToMillis(buffer.size(), this->sampleRate));
+  }
+
+  /**
+   * @brief Set feedback gain.  
+   * @param fbGain gain in linear amplitude. Be careful setting above 1!
+   */
+  void setFeedback(float fbGain) { 
+    this->feedback = fbGain; 
+  }
+
+  void setCutoff(float Hz) {
+    this->loPass.setParams(Hz, 1.f, this->sampleRate);
+  }
+
+};
+
 enum Mode { TRIANGLE, SQUARE };
 
 class LFO : public giml::Phasor<float> {
@@ -54,10 +148,9 @@ struct Monotron : public al::App {
   // audio stuff
   giml::SinOsc<float> osc{48000}; // oscillator at 48kHz sample rate
   LFO lfo{48000};
-  giml::SVF<float> filter{48000.f};
   float q = 5.f;
   float cutoff = 12000.f;
-  giml::Delay<float> delay{48000}; // 0.5 second delay line at 48kHz
+  CustomDelay delay{48000}; // 0.5 second delay line at 48kHz
   bool keyboardMute = true;
   bool bypass = true;
   float freqStash = 0.f;
@@ -78,9 +171,8 @@ struct Monotron : public al::App {
       knob->seed();
       menu.addElement(std::move(knob));
     }
-    delay.setParams(0.f, 0.f, 0.f, 0.5f); // dry by default
+    delay.setParams(0.f, 0.f); // dry by default
     delay.toggle(true);
-    filter.setParams(cutoff, q, 48000.f); // default cutoff 1000 Hz
   }  
 
   bool onMouseDown(Mouse const & m) { 
@@ -148,8 +240,8 @@ struct Monotron : public al::App {
           intensity = mKnob->getCurrentParamValue(); // scale intensity
         }
         else if (mKnob == menu.getElements()[4].get()) {
-          float cutoffFreq = mKnob->getCurrentParamValue()* 12000.f;
-          filter.setParams(cutoffFreq, q, 48000.f); // scale cutoff
+          float cutoffFreq = mKnob->getCurrentParamValue() * 12000.f;
+          delay.setCutoff(cutoffFreq);
         }
         else if (mKnob == menu.getElements()[5].get()) {
           delay.setDelayTime(mKnob->getCurrentParamValue() * 1000.f); // scale delay time
@@ -177,8 +269,6 @@ struct Monotron : public al::App {
       osc.setFrequency(freqStash + (lfoValue * intensity * freqStash)); // LFO modulates frequency by +/- 5 Hz
       float oscOut = osc.processSample() * float(!keyboardMute);
       float s = delay.processSample(oscOut) * float(!bypass);
-      filter(s);
-      s = filter.loPass();
       io.out(0) = s;
       io.out(1) = s;
     }
