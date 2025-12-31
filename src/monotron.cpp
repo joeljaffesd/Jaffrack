@@ -250,17 +250,19 @@ struct Monotron : public al::App {
         mKnob->mouseEvent(pos);
         mKnob->printState();
         if (mKnob == menu.getElements()[2].get()) {
-          lfo.setFrequency(mKnob->getCurrentParamValue() * 20.f); // scale freq
+          float lfoRate = mapParam(mKnob->getCurrentParamValue(), (1 / 46.03f), 426.95f, 3.13f);
+          lfo.setFrequency(lfoRate); // scale freq
         }
         else if (mKnob == menu.getElements()[3].get()) {
           intensity = mKnob->getCurrentParamValue(); // scale intensity
         }
         else if (mKnob == menu.getElements()[4].get()) {
-          float cutoffFreq = mKnob->getCurrentParamValue() * 12000.f;
+          float cutoffFreq = mapParam(mKnob->getCurrentParamValue(), 43.f, 11600.f, 1204.f);
           delay.setCutoff(cutoffFreq);
         }
         else if (mKnob == menu.getElements()[5].get()) {
-          delay.setDelayTime(mKnob->getCurrentParamValue() * 1000.f); // scale delay time
+          float delayTimeMS = mapParam(mKnob->getCurrentParamValue(), 35.7f, 1090.f, 576.f);
+          delay.setDelayTime(delayTimeMS); // scale delay time
         }
         else if (mKnob == menu.getElements()[6].get()) {
           delay.setFeedback(mKnob->getCurrentParamValue() * 1.2f); // scale feedback
