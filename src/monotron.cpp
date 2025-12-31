@@ -19,6 +19,22 @@
 #include "../include/button.hpp"
 
 
+float mapParam(float x,
+               float outMin,
+               float outMax,
+               float mid)
+{
+    x = giml::clip(x, 0.f, 1.f);
+
+    float m = (mid - outMin) / (outMax - outMin); // normalize midpoint
+    float k = log(m) / log(0.5f);
+
+    float y = pow(x, k);
+    return outMin + y * (outMax - outMin);
+}
+
+
+
 class CustomDelay : public giml::Effect<float> {
 private:
   int sampleRate;
@@ -258,7 +274,9 @@ struct Monotron : public al::App {
       return true;
     }
 
-    float freq = al::mapRange(pos.x, -1.f, 1.f, 55.f, 880.f);
+    // float freq = al::mapRange(pos.x, -1.f, 1.f, 55.f, 880.f);
+    float normX = (pos.x + 1.f) / 2.f;
+    float freq = mapParam(normX, 59.f, 4806.f, 392.f);
     freqStash = freq;
     return true; 
   }
