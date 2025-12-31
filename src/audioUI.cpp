@@ -7,6 +7,7 @@
 #include "../include/shadedMesh.hpp"
 #include "../include/imageHandler.hpp"
 #include "../include/state.hpp"
+#include "../include/monotron.hpp"
 
 // al includes
 #include "al/math/al_Functions.hpp"
@@ -50,6 +51,8 @@ struct audioUI : graphicsTemplate<T> {
   bool yesMode = false;
   bool tieDyeMode = false;
   bool mute = false;
+  bool monotronMode = false;
+  std::unique_ptr<Monotron> mMonotron;
 
   ImageHandler mImageHandler;
   ShadedMesh mJuliaMesh;
@@ -98,12 +101,28 @@ struct audioUI : graphicsTemplate<T> {
 
   bool onMouseMove(const Mouse& m) override {
     Vec2f pos = mouseNormCords(m.x(), m.y(), this->width(), this->height());
+    
+    if (monotronMode && mMonotron) {
+      mMonotron->mouseMove(pos);
+      return true;
+    }
+
     menu.query(pos);
     return true;
   } 
 
   bool onMouseDown(const Mouse& m) override {
     Vec2f pos = mouseNormCords(m.x(), m.y(), this->width(), this->height());
+    
+    if (monotronMode && mMonotron) {
+      mMonotron->mouseDown(pos);
+      if (mMonotron->done()) {
+        monotronMode = false;
+        mMonotron = nullptr;
+      }
+      return true;
+    }
+    
     auto &elts = menu.getElements();
 
     if (tieDyeMode) {
@@ -123,8 +142,19 @@ struct audioUI : graphicsTemplate<T> {
       if (elem->query(pos)) {
         yesMode = !yesMode;
       }
-    } else {
+    } 
+    else {
       yesMode = !yesMode;
+    }
+
+    if (elts.size() > 4 && elts[4]->query(pos)) {
+      if (!monotronMode) {
+        monotronMode = true;
+        mMonotron = std::make_unique<Monotron>();
+        mMonotron->seed();
+        std::cout << "audioUI: Monotron mode enabled." << std::endl;
+      } 
+      return true;
     }
 
     if (elts.size() > 5 && elts[5]->query(pos)) {
@@ -138,11 +168,25 @@ struct audioUI : graphicsTemplate<T> {
   }
 
   bool onMouseUp(const Mouse& m) override {
+    Vec2f pos = mouseNormCords(m.x(), m.y(), this->width(), this->height());
+    if (monotronMode && mMonotron) {
+      mMonotron->mouseUp(pos);
+      return true;
+    }
+
     auto &elts = menu.getElements();
     for (auto &e : elts) {
       e->deselect();
     }
     return true;
+  }
+
+  bool onMouseDrag(Mouse const & m) {
+    if (monotronMode && mMonotron) {
+      Vec2f pos = mouseNormCords(m.x(), m.y(), this->width(), this->height());
+      mMonotron->mouseDrag(pos);
+    }
+    return true; 
   }
 
   void onDraw(Graphics& g) override {
@@ -153,6 +197,10 @@ struct audioUI : graphicsTemplate<T> {
     else if (tieDyeMode) {
       mJuliaMesh.draw(g);
     } 
+    else if (monotronMode && mMonotron) {
+      mMonotron->draw(g);
+      g.draw(oscope);
+    }
     else {
       menu.draw(g); // draw menu
       g.draw(oscope);

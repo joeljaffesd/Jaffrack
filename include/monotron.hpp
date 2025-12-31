@@ -143,6 +143,7 @@ private:
 
   // interface stuff
   Container menu{Vec2f(0, 0.75), 2.f, 0.25f, 0.1f};
+  bool timeToDie = false;
 
   // audio stuff
   giml::SinOsc<float> osc{48000}; // oscillator at 48kHz sample rate
@@ -156,9 +157,70 @@ private:
   Parameter cutoffStash = {"monotronCutoffStash", "", 0.f, 43.f, 11600.f};
   Parameter delayTimeStash = {"monotronDelayTimeStash", "", 0.f, 35.7f, 1090.f};
   Parameter feedbackStash = {"monotronFeedbackStash", "", 0.f, 0.f, 1.2f};
+  osc::Send sender{9010, "10.0.0.1"};
 
 public:
+
+  void registerParameters(al::ParameterServer& server) {
+    server.registerParameter(keyboardMute);
+    server.registerParameter(bypass);
+    server.registerParameter(freqStash);
+    server.registerParameter(intensity);
+    server.registerParameter(rateStash);
+    server.registerParameter(cutoffStash);
+    server.registerParameter(delayTimeStash);
+    server.registerParameter(feedbackStash);
+  }
+
   void seed() {
+    keyboardMute.registerChangeCallback([this](float value) {
+      osc::Packet p;
+      p.addMessage("/monotronKeyboardMute", keyboardMute ? 1.f : 0.f);
+      sender.send(p);
+    });
+
+    bypass.registerChangeCallback([this](float value) {
+      osc::Packet p;
+      p.addMessage("/monotronBypass", bypass ? 1.f : 0.f);
+      sender.send(p);
+    });
+
+    freqStash.registerChangeCallback([this](float value) {
+      osc::Packet p;
+      p.addMessage("/monotronFreqStash", freqStash);
+      sender.send(p);
+    });
+    
+    intensity.registerChangeCallback([this](float value) {
+      osc::Packet p;
+      p.addMessage("/monotronIntensity", intensity);
+      sender.send(p);
+    });
+
+    rateStash.registerChangeCallback([this](float value) {
+      osc::Packet p;
+      p.addMessage("/monotronRateStash", rateStash);
+      sender.send(p);
+    });
+
+    cutoffStash.registerChangeCallback([this](float value) {
+      osc::Packet p;
+      p.addMessage("/monotronCutoffStash", cutoffStash);
+      sender.send(p);
+    });
+
+    delayTimeStash.registerChangeCallback([this](float value) {
+      osc::Packet p;
+      p.addMessage("/monotronDelayTimeStash", delayTimeStash);
+      sender.send(p);
+    });
+
+    feedbackStash.registerChangeCallback([this](float value) {
+      osc::Packet p;
+      p.addMessage("/monotronFeedbackStash", feedbackStash);
+      sender.send(p);
+    });
+
     auto button = std::make_unique<Button>(Vec2f(0,0), 2.f, 2.f, 0.25f);
     button->seed();
     menu.addElement(std::move(button));
@@ -204,6 +266,16 @@ public:
 
   void mouseDown(al::Vec2f normalizedPos) {
     const auto& elements = menu.getElements();
+
+    // check if it's time to die
+    if (menu.getElements()[0].get()) {
+      if (menu.getElements()[0]->query(normalizedPos)) {
+        if (!timeToDie) {
+          timeToDie = true;
+        }
+      }
+    }
+
     // Check if button was clicked
     RadioButton* rButton = dynamic_cast<RadioButton*>(elements[1].get());
     if (rButton) {
@@ -232,7 +304,7 @@ public:
     }
   }
 
-  void mouseUp(al::Vec2f normalizedPos) {
+  void mouseUp(al::Vec2f normalizedPos) {    
     if (normalizedPos.y > 0.5f) {
       keyboardMute = true;
     } 
@@ -330,7 +402,14 @@ public:
     menu.draw(g);
   }
 
+  bool done() {
+    return timeToDie;
+  }
+
   void processSample(float& sample) {
+    if (timeToDie) { 
+      return; 
+    }
     float lfoValue = lfo.processSample();
     osc.setFrequency(freqStash + (lfoValue * intensity * freqStash)); // LFO modulates frequency by +/- 5 Hz
     float oscOut = osc.processSample() * float(!keyboardMute);

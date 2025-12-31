@@ -14,6 +14,8 @@ using namespace cuttlebone;
 #include "../include/state.hpp"
 #endif
 
+#include "../include/monotron.hpp"
+
 template <typename T>
 struct cuttleSend : wetDryWet<T> {
   const char* targetAddress;
@@ -24,12 +26,14 @@ struct cuttleSend : wetDryWet<T> {
 
   ParameterBool mute {"mute", "", false};
   al::ParameterServer parameterServer {"0.0.0.0", 9010};
+  Monotron mMonotron;
 
   cuttleSend(int sampleRate, int blockSize, int audioOutputs, int audioInputs, const char* target = "127.0.0.1") :
   wetDryWet<T>(sampleRate, blockSize, audioOutputs, audioInputs), targetAddress(target), maker(target)
   {
     maker.start();
-
+    mMonotron.seed();
+    mMonotron.registerParameters(parameterServer);
 
     if (!player.load("../../media/huckFinn.wav")) {
       std::cout << "Failed to load audio file" << std::endl;
@@ -49,6 +53,7 @@ struct cuttleSend : wetDryWet<T> {
       player.advance();
       for (int channel = 0; channel < this->channelsOut; channel++){
         io.out(channel, sample) += player.read(0);
+        mMonotron.processSample(io.out(channel, sample));
         amp += io.out(channel, sample);
       }
       amp /= this->channelsOut;
