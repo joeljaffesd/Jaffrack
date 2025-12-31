@@ -1,3 +1,6 @@
 build/
 bin/
 .DS_Store
+
+nam_models/BassModel.h
+nam_models/BassModel.nam
