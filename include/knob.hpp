@@ -14,11 +14,11 @@ private:
   al::Mesh mIndicatorLine;
 
   // float endAngle = 225 * M_PI / 180.0f;
-  float currentEndAngleDeg = -45.f;
+  float currentEndAngleDeg = 90.f;
   const float startAngleDeg = -45.f;
   const float maxEndAngleDeg = 225.f;
 
-  float currentParamValue = 0.f; // normalized [0,1] value
+  float currentParamValue = 0.5f; // normalized [0,1] value
 
 public:
 
