@@ -187,37 +187,37 @@ public:
 
     freqStash.registerChangeCallback([this](float value) {
       osc::Packet p;
-      p.addMessage("/monotronFreqStash", freqStash);
+      p.addMessage("/monotronFreqStash", freqStash.get());
       sender.send(p);
     });
     
     intensity.registerChangeCallback([this](float value) {
       osc::Packet p;
-      p.addMessage("/monotronIntensity", intensity);
+      p.addMessage("/monotronIntensity", intensity.get());
       sender.send(p);
     });
 
     rateStash.registerChangeCallback([this](float value) {
       osc::Packet p;
-      p.addMessage("/monotronRateStash", rateStash);
+      p.addMessage("/monotronRateStash", rateStash.get());
       sender.send(p);
     });
 
     cutoffStash.registerChangeCallback([this](float value) {
       osc::Packet p;
-      p.addMessage("/monotronCutoffStash", cutoffStash);
+      p.addMessage("/monotronCutoffStash", cutoffStash.get());
       sender.send(p);
     });
 
     delayTimeStash.registerChangeCallback([this](float value) {
       osc::Packet p;
-      p.addMessage("/monotronDelayTimeStash", delayTimeStash);
+      p.addMessage("/monotronDelayTimeStash", delayTimeStash.get());
       sender.send(p);
     });
 
     feedbackStash.registerChangeCallback([this](float value) {
       osc::Packet p;
-      p.addMessage("/monotronFeedbackStash", feedbackStash);
+      p.addMessage("/monotronFeedbackStash", feedbackStash.get());
       sender.send(p);
     });
 
