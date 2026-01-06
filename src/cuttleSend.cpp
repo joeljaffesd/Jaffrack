@@ -31,7 +31,7 @@ struct cuttleSend : wetDryWet<T> {
     maker.start();
 
 
-    if (!player.load("../../media/huckFinn.wav")) {
+    if (!player.load("../../media/huckFinnEb.wav")) {
       std::cout << "Failed to load audio file" << std::endl;
     }
 
