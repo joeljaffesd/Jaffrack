@@ -9,13 +9,17 @@ using namespace cuttlebone;
 
 #define MAIN
 #include "wetDryWet.cpp"
+#include "bass.cpp"
+
+#define APPTYPE Bass
+// #define APPTYPE wetDryWet
 
 #ifndef STATE_HPP
 #include "../include/state.hpp"
 #endif
 
 template <typename T>
-struct cuttleSend : wetDryWet<T> {
+struct cuttleSend : APPTYPE<T> {
   const char* targetAddress;
   Maker<SharedState> maker;
   SharedState* localState = new SharedState;
@@ -26,7 +30,7 @@ struct cuttleSend : wetDryWet<T> {
   al::ParameterServer parameterServer {"0.0.0.0", 9010};
 
   cuttleSend(int sampleRate, int blockSize, int audioOutputs, int audioInputs, const char* target = "127.0.0.1") :
-  wetDryWet<T>(sampleRate, blockSize, audioOutputs, audioInputs), targetAddress(target), maker(target)
+  APPTYPE<T>(sampleRate, blockSize, audioOutputs, audioInputs), targetAddress(target), maker(target)
   {
     maker.start();
 
@@ -43,7 +47,7 @@ struct cuttleSend : wetDryWet<T> {
   }
 
   void onSound(AudioIOData &io) override {
-    wetDryWet<T>::onSound(io);
+    APPTYPE<T>::onSound(io);
     for (int sample = 0; sample < this->blockSize; sample++) {
       float amp = 0.f;
       player.advance();
