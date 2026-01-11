@@ -5,6 +5,8 @@
 #include "Gimmel/include/gimmel.hpp"
 #include "../include/knob.hpp"
 #include "../include/button.hpp"
+#include "al/ui/al_Parameter.hpp"
+#include "al/ui/al_ParameterBundle.hpp"
 
 float mapParam(float x, float outMin, float outMax, float mid)
 {
@@ -17,7 +19,39 @@ float mapParam(float x, float outMin, float outMax, float mid)
     return outMin + y * (outMax - outMin);
 }
 
+// ============================================================================
+// MONOTRON PARAMETERS - Shared between Processor and Editor
+// ============================================================================
+
+struct MonotronParameters {
+  al::ParameterBool keyboardMute {"monotronKeyboardMute", "", true};
+  al::ParameterBool bypass {"monotronBypass", "", true};
+  al::Parameter freqStash {"monotronFreqStash", "", 392.f, 59.f, 4806.f};
+  al::Parameter intensity {"monotronIntensity", "", 0.f, 0.f, 1.f};
+  al::Parameter rateStash {"monotronRateStash", "", 3.13f, (1 / 46.03f), 426.95f};
+  al::Parameter cutoffStash {"monotronCutoffStash", "", 1204.f, 43.f, 11600.f};
+  al::Parameter delayTimeStash {"monotronDelayTimeStash", "", 576.f, 35.7f, 1090.f};
+  al::Parameter feedbackStash {"monotronFeedbackStash", "", 0.f, 0.f, 1.2f};
+  al::ParameterInt lfoMode {"monotronLfoMode", "", 0, 0, 1}; // 0=Triangle, 1=Square
+
+  al::ParameterBundle bundle {"monotron"};
+
+  MonotronParameters() {
+    bundle << keyboardMute << bypass << freqStash << intensity 
+           << rateStash << cutoffStash << delayTimeStash 
+           << feedbackStash << lfoMode;
+  }
+
+  void registerWithServer(al::ParameterServer& server) {
+    server << bundle;
+  }
+};
+
 enum Mode { TRIANGLE, SQUARE };
+
+// ============================================================================
+// AUDIO COMPONENTS
+// ============================================================================
 
 class LFO : public giml::Phasor<float> {
 private: 
@@ -138,6 +172,215 @@ public:
 
 };
 
+// ============================================================================
+// MONOTRON PROCESSOR - Audio processing with parameter listening
+// ============================================================================
+
+class MonotronProcessor {
+private:
+  giml::SinOsc<float> osc{48000};
+  LFO lfo{48000};
+  CustomDelay delay{48000};
+  MonotronParameters* params;
+
+public:
+  MonotronProcessor() = delete;
+  
+  MonotronProcessor(MonotronParameters* p) : params(p) {
+    delay.setParams(params->delayTimeStash.get(), params->feedbackStash.get());
+    delay.setCutoff(params->cutoffStash.get());
+    delay.toggle(true);
+    lfo.setFrequency(params->rateStash.get());
+    lfo.setMode(params->lfoMode.get() == 0 ? TRIANGLE : SQUARE);
+  }
+
+  void processSample(float& sample) {
+    // Update from parameters
+    float lfoValue = lfo.processSample();
+    float freq = params->freqStash.get();
+    float lfoIntensity = params->intensity.get();
+    
+    osc.setFrequency(freq + (lfoValue * lfoIntensity * freq));
+    float oscOut = osc.processSample() * float(!params->keyboardMute.get());
+    float s = delay.processSample(oscOut) * float(!params->bypass.get());
+    sample += s;
+  }
+
+  void updateDSP() {
+    lfo.setFrequency(params->rateStash.get());
+    lfo.setMode(params->lfoMode.get() == 0 ? TRIANGLE : SQUARE);
+    delay.setCutoff(params->cutoffStash.get());
+    delay.setDelayTime(params->delayTimeStash.get());
+    delay.setFeedback(params->feedbackStash.get());
+  }
+};
+
+// ============================================================================
+// MONOTRON EDITOR - UI/Graphics with parameter control
+// ============================================================================
+
+class MonotronEditor {
+private:
+  Container menu{Vec2f(0, 0.75), 2.f, 0.25f, 0.1f};
+  MonotronParameters* params;
+  bool timeToDie = false;
+
+public:
+  MonotronEditor() = delete;
+  
+  MonotronEditor(MonotronParameters* p) : params(p) {}
+
+  void seed() {
+    auto button = std::make_unique<Button>(Vec2f(0,0), 2.f, 2.f, 0.25f);
+    button->seed();
+    menu.addElement(std::move(button));
+
+    auto radioButton = std::make_unique<RadioButton>(Vec2f(0,0), 2.f, 2.f, 0.25f);
+    radioButton->seed();
+    menu.addElement(std::move(radioButton));
+
+    // Create 5 knobs
+    for (size_t i = 0; i < 5; i++) {
+      auto knob = std::make_unique<Knob>(Vec2f(0,0), 2.f, 2.f, 0.25f);
+      knob->seed();
+      menu.addElement(std::move(knob));
+    }
+
+    // Initialize knobs from parameters
+    updateKnobsFromParams();
+  }
+
+  void updateKnobsFromParams() {
+    auto& elts = menu.getElements();
+    
+    // Rate knob
+    if (elts.size() > 2) {
+      Knob* knob = dynamic_cast<Knob*>(elts[2].get());
+      if (knob) {
+        float normRate = (params->rateStash.get() - (1/46.03f)) / (426.95f - (1/46.03f));
+        knob->setParamValue(normRate);
+      }
+    }
+    
+    // Intensity knob
+    if (elts.size() > 3) {
+      Knob* knob = dynamic_cast<Knob*>(elts[3].get());
+      if (knob) {
+        knob->setParamValue(params->intensity.get());
+      }
+    }
+    
+    // Cutoff knob
+    if (elts.size() > 4) {
+      Knob* knob = dynamic_cast<Knob*>(elts[4].get());
+      if (knob) {
+        float normCutoff = (params->cutoffStash.get() - 43.f) / (11600.f - 43.f);
+        knob->setParamValue(normCutoff);
+      }
+    }
+    
+    // DelayTime knob
+    if (elts.size() > 5) {
+      Knob* knob = dynamic_cast<Knob*>(elts[5].get());
+      if (knob) {
+        float normTime = (params->delayTimeStash.get() - 35.7f) / (1090.f - 35.7f);
+        knob->setParamValue(normTime);
+      }
+    }
+    
+    // Feedback knob
+    if (elts.size() > 6) {
+      Knob* knob = dynamic_cast<Knob*>(elts[6].get());
+      if (knob) {
+        knob->setParamValue(params->feedbackStash.get() / 1.2f);
+      }
+    }
+  }
+
+  void mouseDown(al::Vec2f normalizedPos) {
+    const auto& elements = menu.getElements();
+
+    // Check exit button
+    if (elements[0].get() && elements[0]->query(normalizedPos)) {
+      timeToDie = true;
+    }
+
+    // Check radio button
+    RadioButton* rButton = dynamic_cast<RadioButton*>(elements[1].get());
+    if (rButton) {
+      rButton->onClick(normalizedPos);
+      
+      if (rButton->getCurrentChoice() == 0) {
+        params->bypass.set(true);
+      } else {
+        params->bypass.set(false);
+        params->lfoMode.set(rButton->getCurrentChoice() - 1);
+      }
+    }
+    
+    // Keyboard mute control
+    if (normalizedPos.y > 0.5f) {
+      params->keyboardMute.set(true);
+    } else {
+      params->keyboardMute.set(false);
+    }
+  }
+
+  void mouseUp(al::Vec2f normalizedPos) {
+    params->keyboardMute.set(true);
+  }
+
+  void mouseMove(al::Vec2f normalizedPos) {
+    menu.query(normalizedPos);
+  }
+
+  void mouseDrag(al::Vec2f normalizedPos) {
+    for (auto& elemPtr : menu.getElements()) {
+      Knob* mKnob = dynamic_cast<Knob*>(elemPtr.get());
+      if (mKnob && mKnob->query(normalizedPos)) {
+        mKnob->mouseEvent(normalizedPos);
+        
+        if (mKnob == menu.getElements()[2].get()) {
+          params->rateStash.set(mapParam(mKnob->getCurrentParamValue(), (1 / 46.03f), 426.95f, 3.13f));
+        }
+        else if (mKnob == menu.getElements()[3].get()) {
+          params->intensity.set(mKnob->getCurrentParamValue());
+        }
+        else if (mKnob == menu.getElements()[4].get()) {
+          params->cutoffStash.set(mapParam(mKnob->getCurrentParamValue(), 43.f, 11600.f, 1204.f));
+        }
+        else if (mKnob == menu.getElements()[5].get()) {
+          params->delayTimeStash.set(mapParam(mKnob->getCurrentParamValue(), 35.7f, 1090.f, 576.f));
+        }
+        else if (mKnob == menu.getElements()[6].get()) {
+          params->feedbackStash.set(mKnob->getCurrentParamValue() * 1.2f);
+        }
+      }
+    }
+
+    // Frequency control in lower half
+    if (normalizedPos.y <= 0.5f) {
+      float normX = (normalizedPos.x + 1.f) / 2.f;
+      float freq = mapParam(normX, 59.f, 4806.f, 392.f);
+      params->freqStash.set(freq);
+    } else {
+      params->keyboardMute.set(true);
+    }
+  }
+
+  void draw(Graphics& g) {
+    menu.draw(g);
+  }
+
+  bool done() {
+    return timeToDie;
+  }
+};
+
+// ============================================================================
+// LEGACY COMBINED CLASS - For backward compatibility
+// ============================================================================
+
 class Monotron {
 private:
 
@@ -157,9 +400,14 @@ private:
   Parameter cutoffStash = {"monotronCutoffStash", "", 0.f, 43.f, 11600.f};
   Parameter delayTimeStash = {"monotronDelayTimeStash", "", 0.f, 35.7f, 1090.f};
   Parameter feedbackStash = {"monotronFeedbackStash", "", 0.f, 0.f, 1.2f};
-  osc::Send sender{9010, "10.0.0.1"};
+  osc::Send sender{9010};
 
 public:
+
+  Monotron() = delete;
+  Monotron(const char* oscAddress) {
+    sender.open(9010, oscAddress);
+  }
 
   void registerParameters(al::ParameterServer& server) {
     server.registerParameter(keyboardMute);

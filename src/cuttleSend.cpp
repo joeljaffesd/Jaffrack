@@ -30,24 +30,52 @@ struct cuttleSend : APPTYPE<T> {
 
   ParameterBool mute {"mute", "", false};
   al::ParameterServer parameterServer {"0.0.0.0", 9010};
-  Monotron mMonotron;
+  
+  // Monotron components
+  MonotronParameters monotronParams;
+  std::unique_ptr<MonotronProcessor> monotronProcessor;
 
   cuttleSend(int sampleRate, int blockSize, int audioOutputs, int audioInputs, const char* target = "127.0.0.1") :
   APPTYPE<T>(sampleRate, blockSize, audioOutputs, audioInputs), targetAddress(target), maker(target)
   {
+    // Start parameter server first
+    // parameterServer.verbose(true);
+    parameterServer.registerParameter(mute);
+    mute.registerChangeCallback([this](float value) {
+      std::cout << "Mute changed to: " << (value > 0.5f ? "ON" : "OFF") << std::endl;
+      if (value > 0.5f) {
+        player.reset();
+      }
+    });
+    
     maker.start();
-    mMonotron.seed();
-    mMonotron.registerParameters(parameterServer);
+    
+    // Initialize processor after params exist
+    monotronProcessor = std::make_unique<MonotronProcessor>(&monotronParams);
+    
+    // Register monotron parameters with server
+    monotronParams.registerWithServer(parameterServer);
+    
+    // Setup parameter change callbacks for DSP updates
+    monotronParams.rateStash.registerChangeCallback([this](float value) {
+      monotronProcessor->updateDSP();
+    });
+    monotronParams.cutoffStash.registerChangeCallback([this](float value) {
+      monotronProcessor->updateDSP();
+    });
+    monotronParams.delayTimeStash.registerChangeCallback([this](float value) {
+      monotronProcessor->updateDSP();
+    });
+    monotronParams.feedbackStash.registerChangeCallback([this](float value) {
+      monotronProcessor->updateDSP();
+    });
+    monotronParams.lfoMode.registerChangeCallback([this](float value) {
+      monotronProcessor->updateDSP();
+    });
 
     if (!player.load("../../media/huckFinnEb.wav")) {
       std::cout << "Failed to load audio file" << std::endl;
     }
-
-    parameterServer.verbose(true);
-    parameterServer.registerParameter(mute);
-    mute.registerChangeCallback([this](float value) {
-      player.reset();
-    });
   }
 
   void onSound(AudioIOData &io) override {
@@ -57,7 +85,7 @@ struct cuttleSend : APPTYPE<T> {
       player.advance();
       for (int channel = 0; channel < this->channelsOut; channel++){
         io.out(channel, sample) += player.read(0);
-        mMonotron.processSample(io.out(channel, sample));
+        monotronProcessor->processSample(io.out(channel, sample));
         amp += io.out(channel, sample);
       }
       amp /= this->channelsOut;

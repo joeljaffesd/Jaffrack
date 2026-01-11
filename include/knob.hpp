@@ -117,6 +117,12 @@ public:
     return currentParamValue;
   }
 
+  void setParamValue(float value) {
+    currentParamValue = al::clip(value, 0.f, 1.f);
+    currentEndAngleDeg = al::mapRange(currentParamValue, 0.f, 1.f, -45.f, 225.f);
+    updateIndicator(currentEndAngleDeg * M_PI / 180.f);
+  }
+
   // Override draw to properly position knob meshes
   void draw(al::Graphics& g) override {
     // Draw frame if desired

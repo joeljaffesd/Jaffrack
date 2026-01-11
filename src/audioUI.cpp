@@ -17,6 +17,7 @@
 
 
 #define MAX_NOW 5000.f
+#define OSC_ADDRESS "127.0.0.1"
 
 class SineButton : public Element {
 private:  
@@ -52,14 +53,18 @@ struct audioUI : graphicsTemplate<T> {
   bool tieDyeMode = false;
   bool mute = false;
   bool monotronMode = false;
-  std::unique_ptr<Monotron> mMonotron;
+  
+  // Monotron components
+  std::unique_ptr<MonotronParameters> mMonotronParams;
+  std::unique_ptr<MonotronEditor> mMonotronEditor;
 
   ImageHandler mImageHandler;
   ShadedMesh mJuliaMesh;
   
   al::Parameter now {"now", "", 0.f, 0.f, MAX_NOW};
-  osc::Send sender{9010, "10.0.0.1"};
-
+  osc::Send oscSender{9010, OSC_ADDRESS};
+  al::OSCNotifier oscNotifier;
+  
   void onInit() override {
     taker.start();
     mImageHandler.init(dynamic_cast<al::App&>(*this));
@@ -102,8 +107,8 @@ struct audioUI : graphicsTemplate<T> {
   bool onMouseMove(const Mouse& m) override {
     Vec2f pos = mouseNormCords(m.x(), m.y(), this->width(), this->height());
     
-    if (monotronMode && mMonotron) {
-      mMonotron->mouseMove(pos);
+    if (monotronMode && mMonotronEditor) {
+      mMonotronEditor->mouseMove(pos);
       return true;
     }
 
@@ -114,11 +119,12 @@ struct audioUI : graphicsTemplate<T> {
   bool onMouseDown(const Mouse& m) override {
     Vec2f pos = mouseNormCords(m.x(), m.y(), this->width(), this->height());
     
-    if (monotronMode && mMonotron) {
-      mMonotron->mouseDown(pos);
-      if (mMonotron->done()) {
+    if (monotronMode && mMonotronEditor) {
+      mMonotronEditor->mouseDown(pos);
+      if (mMonotronEditor->done()) {
         monotronMode = false;
-        mMonotron = nullptr;
+        mMonotronEditor = nullptr;
+        mMonotronParams = nullptr;
       }
       return true;
     }
@@ -150,8 +156,14 @@ struct audioUI : graphicsTemplate<T> {
     if (elts.size() > 4 && elts[4]->query(pos)) {
       if (!monotronMode) {
         monotronMode = true;
-        mMonotron = std::make_unique<Monotron>();
-        mMonotron->seed();
+        mMonotronParams = std::make_unique<MonotronParameters>();
+        
+        // Add OSC notifier to send to audio server
+        oscNotifier.addListener(OSC_ADDRESS, 9010);
+        mMonotronParams->bundle.addNotifier(&oscNotifier);
+        
+        mMonotronEditor = std::make_unique<MonotronEditor>(mMonotronParams.get());
+        mMonotronEditor->seed();
         std::cout << "audioUI: Monotron mode enabled." << std::endl;
       } 
       return true;
@@ -161,7 +173,7 @@ struct audioUI : graphicsTemplate<T> {
       mute = !mute;
       osc::Packet p;
       p.addMessage("/mute", mute ? 1.f : 0.f);
-      sender.send(p);
+      oscSender.send(p);
     }
 
     return true;
@@ -169,8 +181,8 @@ struct audioUI : graphicsTemplate<T> {
 
   bool onMouseUp(const Mouse& m) override {
     Vec2f pos = mouseNormCords(m.x(), m.y(), this->width(), this->height());
-    if (monotronMode && mMonotron) {
-      mMonotron->mouseUp(pos);
+    if (monotronMode && mMonotronEditor) {
+      mMonotronEditor->mouseUp(pos);
       return true;
     }
 
@@ -182,9 +194,9 @@ struct audioUI : graphicsTemplate<T> {
   }
 
   bool onMouseDrag(Mouse const & m) {
-    if (monotronMode && mMonotron) {
+    if (monotronMode && mMonotronEditor) {
       Vec2f pos = mouseNormCords(m.x(), m.y(), this->width(), this->height());
-      mMonotron->mouseDrag(pos);
+      mMonotronEditor->mouseDrag(pos);
     }
     return true; 
   }
@@ -197,8 +209,8 @@ struct audioUI : graphicsTemplate<T> {
     else if (tieDyeMode) {
       mJuliaMesh.draw(g);
     } 
-    else if (monotronMode && mMonotron) {
-      mMonotron->draw(g);
+    else if (monotronMode && mMonotronEditor) {
+      mMonotronEditor->draw(g);
       g.draw(oscope);
     }
     else {
