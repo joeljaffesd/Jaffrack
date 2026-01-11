@@ -72,6 +72,11 @@ struct cuttleSend : APPTYPE<T> {
     monotronParams.lfoMode.registerChangeCallback([this](float value) {
       monotronProcessor->updateDSP();
     });
+    monotronParams.bypass.registerChangeCallback([this](float value) {
+      if (value < 0.5f) { // bypass disabled, enabling sound
+        monotronProcessor = std::make_unique<MonotronProcessor>(&monotronParams);
+      }
+    });
 
     if (!player.load("../../media/huckFinnEb.wav")) {
       std::cout << "Failed to load audio file" << std::endl;

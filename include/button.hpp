@@ -161,6 +161,11 @@ public:
   int getCurrentChoice() const {
     return currentChoice;
   }
+
+  void setCurrentChoice(int choice) {
+    currentChoice = choice;
+    updateVisual();
+  }
     
 };
 

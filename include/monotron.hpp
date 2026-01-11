@@ -295,6 +295,18 @@ public:
         knob->setParamValue(params->feedbackStash.get() / 1.2f);
       }
     }
+
+    // Radio button
+    if (elts.size() > 1) {
+      RadioButton* rButton = dynamic_cast<RadioButton*>(elts[1].get());
+      if (rButton) {
+        if (params->bypass.get()) {
+          rButton->setCurrentChoice(0);
+        } else {
+          rButton->setCurrentChoice(params->lfoMode.get() + 1);
+        }
+      }
+    }
   }
 
   void mouseDown(al::Vec2f normalizedPos) {

@@ -54,16 +54,16 @@ struct audioUI : graphicsTemplate<T> {
   bool mute = false;
   bool monotronMode = false;
   
-  // Monotron components
-  std::unique_ptr<MonotronParameters> mMonotronParams;
+  // Monotron components - persistent, created once
+  MonotronParameters mMonotronParams;
   std::unique_ptr<MonotronEditor> mMonotronEditor;
+  al::OSCNotifier mMonotronNotifier;
 
   ImageHandler mImageHandler;
   ShadedMesh mJuliaMesh;
   
   al::Parameter now {"now", "", 0.f, 0.f, MAX_NOW};
   osc::Send oscSender{9010, OSC_ADDRESS};
-  al::OSCNotifier oscNotifier;
   
   void onInit() override {
     taker.start();
@@ -90,6 +90,12 @@ struct audioUI : graphicsTemplate<T> {
 
     mJuliaMesh.seed();
     std::cout << "audioUI: Julia mesh seeded." << std::endl;
+
+    // Initialize monotron components once
+    mMonotronNotifier.addListener(OSC_ADDRESS, 9010);
+    mMonotronParams.bundle.addNotifier(&mMonotronNotifier);
+    std::cout << "audioUI: Monotron OSC initialized at bundle index: " 
+              << mMonotronParams.bundle.bundleIndex() << std::endl;
   }
 
   void onAnimate(double dt) override {
@@ -123,8 +129,9 @@ struct audioUI : graphicsTemplate<T> {
       mMonotronEditor->mouseDown(pos);
       if (mMonotronEditor->done()) {
         monotronMode = false;
+        // Clean up editor only, keep params and notifier for next time
         mMonotronEditor = nullptr;
-        mMonotronParams = nullptr;
+        std::cout << "audioUI: Monotron mode disabled." << std::endl;
       }
       return true;
     }
@@ -156,15 +163,41 @@ struct audioUI : graphicsTemplate<T> {
     if (elts.size() > 4 && elts[4]->query(pos)) {
       if (!monotronMode) {
         monotronMode = true;
-        mMonotronParams = std::make_unique<MonotronParameters>();
         
-        // Add OSC notifier to send to audio server
-        oscNotifier.addListener(OSC_ADDRESS, 9010);
-        mMonotronParams->bundle.addNotifier(&oscNotifier);
+        // Reset parameters to defaults and send via OSC
+        mMonotronParams.bypass.set(true);
+        mMonotronParams.keyboardMute.set(true);
+        mMonotronParams.freqStash.set(392.f);
+        mMonotronParams.intensity.set(0.f);
+        mMonotronParams.rateStash.set(3.13f);
+        mMonotronParams.cutoffStash.set(1204.f);
+        mMonotronParams.delayTimeStash.set(576.f);
+        mMonotronParams.feedbackStash.set(0.f);
+        mMonotronParams.lfoMode.set(0);
         
-        mMonotronEditor = std::make_unique<MonotronEditor>(mMonotronParams.get());
+        // Force send all parameter values via OSC
+        mMonotronNotifier.notifyListeners(mMonotronParams.bypass.getFullAddress(), 
+                                          mMonotronParams.bypass.get() ? 1.f : 0.f);
+        mMonotronNotifier.notifyListeners(mMonotronParams.intensity.getFullAddress(), 
+                                          mMonotronParams.intensity.get());
+        mMonotronNotifier.notifyListeners(mMonotronParams.rateStash.getFullAddress(), 
+                                          mMonotronParams.rateStash.get());
+        mMonotronNotifier.notifyListeners(mMonotronParams.cutoffStash.getFullAddress(), 
+                                          mMonotronParams.cutoffStash.get());
+        mMonotronNotifier.notifyListeners(mMonotronParams.delayTimeStash.getFullAddress(), 
+                                          mMonotronParams.delayTimeStash.get());
+        mMonotronNotifier.notifyListeners(mMonotronParams.feedbackStash.getFullAddress(), 
+                                          mMonotronParams.feedbackStash.get());
+        mMonotronNotifier.notifyListeners(mMonotronParams.lfoMode.getFullAddress(), 
+                                          (float)mMonotronParams.lfoMode.get());
+        mMonotronNotifier.notifyListeners(mMonotronParams.freqStash.getFullAddress(), 
+                                          mMonotronParams.freqStash.get());
+        mMonotronNotifier.notifyListeners(mMonotronParams.keyboardMute.getFullAddress(), 
+                                          mMonotronParams.keyboardMute.get() ? 1.f : 0.f);
+        
+        mMonotronEditor = std::make_unique<MonotronEditor>(&mMonotronParams);
         mMonotronEditor->seed();
-        std::cout << "audioUI: Monotron mode enabled." << std::endl;
+        std::cout << "audioUI: Monotron mode enabled with synced parameters." << std::endl;
       } 
       return true;
     }
