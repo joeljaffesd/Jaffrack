@@ -6,8 +6,8 @@
 
 // Add NAM compatibility to giml
 namespace giml {
-  template<typename T, typename Layer1, typename Layer2>
-  class AmpModeler : public Effect<T>, public wavenet::RTWavenet<1, 1, Layer1, Layer2> {
+  template<typename T, typename Layer1, typename Layer2, unsigned samplesPerBuffer>
+  class AmpModeler : public Effect<T>, public wavenet::RTWavenet<1, samplesPerBuffer, Layer1, Layer2> {
   public:
     // Add default constructor
     AmpModeler() {
@@ -19,13 +19,13 @@ namespace giml {
     ~AmpModeler() {}
 
     // Copy constructor
-    AmpModeler(const AmpModeler<T, Layer1, Layer2>& other) : 
-    Effect<T>(other), wavenet::RTWavenet<1, 1, Layer1, Layer2>(other) {}
+    AmpModeler(const AmpModeler<T, Layer1, Layer2, samplesPerBuffer>& other) : 
+    Effect<T>(other), wavenet::RTWavenet<1, samplesPerBuffer, Layer1, Layer2>(other) {}
 
     // Copy assignment operator
-    AmpModeler<T, Layer1, Layer2>& operator=(const AmpModeler<T, Layer1, Layer2>& other) {
+    AmpModeler<T, Layer1, Layer2, samplesPerBuffer>& operator=(const AmpModeler<T, Layer1, Layer2, samplesPerBuffer>& other) {
       Effect<T>::operator=(other);
-      wavenet::RTWavenet<1, 1, Layer1, Layer2>::operator=(other);
+      wavenet::RTWavenet<1, samplesPerBuffer, Layer1, Layer2>::operator=(other);
       return *this;
     }
 
@@ -36,7 +36,7 @@ namespace giml {
      */
     void loadModel(std::vector<float> weights) {
       this->model.load_weights(weights);
-      this->model.prepare(1); // Prepare for single sample processing
+      this->model.prepare(samplesPerBuffer); // Prepare for single sample processing
       this->model.prewarm();
     }
     
@@ -50,6 +50,11 @@ namespace giml {
       if (!this->enabled) { return input; }
       return this->model.forward(input);;
     }
+
+    void processBuffer(const float* input, float* output, size_t size) {
+      if (!this->enabled) { return; }
+      this->model.forward(input, output, size);
+    }    
 
   };
 } // namespace giml

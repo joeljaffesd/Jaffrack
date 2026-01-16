@@ -5,7 +5,7 @@
 
 template <typename T>
 struct Bass : audioTemplate<T> {
-  giml::AmpModeler<T, Layer1, Layer2> mAmpModeler;
+  giml::AmpModeler<T, Layer1, Layer2, 128> mAmpModeler;
   BassModelWeights mWeights; // Bass model weights
 
   Bass(int sampleRate, int blockSize, int audioOutputs, int audioInputs) :
@@ -16,16 +16,14 @@ struct Bass : audioTemplate<T> {
   } 
 
   void onSound(AudioIOData &io) override {
-    while(io()) {
-      T in = io.in(0);
-      T dry = mAmpModeler.processSample(in); // Process input through the amp modeler
-      io.out(0) = dry;
-      io.out(1) = dry;
+    const float* input = io.inBuffer(0);
+    float* output = io.outBuffer(0);
+    mAmpModeler.processBuffer(input, output, io.framesPerBuffer());
 
-      // write output in "multi-stereo" loop
-      for (int channel = 2; channel < io.channelsOut(); channel++) {
-        if (channel % 2 == 0) { io.out(channel) = io.out(0); } 
-        else { io.out(channel) = io.out(1); }
+    // copy to other output channels if any
+    for (unsigned int ch = 1; ch < io.channelsOut(); ch++) {
+      for (unsigned int i = 0; i < io.framesPerBuffer(); i++) {
+        io.out(ch, i) = output[i];
       }
     }
   }

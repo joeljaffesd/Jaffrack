@@ -5,7 +5,7 @@
 
 template <typename T>
 struct wetDryWet : audioTemplate<T> {
-  giml::AmpModeler<T, MarshallModelLayer1, MarshallModelLayer2> mAmpModeler;
+  giml::AmpModeler<T, MarshallModelLayer1, MarshallModelLayer2, 1> mAmpModeler;
   MarshallModelWeights mWeights; // Marshall model weights
   giml::Expander<T> noiseGate; // Expander effect
   giml::Detune<T> detuneL;  

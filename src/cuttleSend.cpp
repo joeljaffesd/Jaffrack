@@ -49,13 +49,11 @@ struct cuttleSend : APPTYPE<T> {
   void onSound(AudioIOData &io) override {
     APPTYPE<T>::onSound(io);
     for (int sample = 0; sample < this->blockSize; sample++) {
-      float amp = 0.f;
       player.advance();
       for (int channel = 0; channel < this->channelsOut; channel++){
         io.out(channel, sample) += player.read(0);
-        amp += io.out(channel, sample);
       }
-      amp /= this->channelsOut;
+      float amp = io.out(0, sample);
       localState->writeSample(amp);
     }
     maker.set(*localState);
