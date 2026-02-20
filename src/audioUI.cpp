@@ -164,18 +164,12 @@ struct audioUI : graphicsTemplate<T> {
       if (!monotronMode) {
         monotronMode = true;
         
-        // Reset parameters to defaults and send via OSC
-        mMonotronParams.bypass.set(true);
+        // Sync UI-side params to their current values (do NOT reset delay/feedback
+        // to avoid clearing whatever is looping in the delay line).
         mMonotronParams.keyboardMute.set(true);
         mMonotronParams.freqStash.set(392.f);
-        mMonotronParams.intensity.set(0.f);
-        mMonotronParams.rateStash.set(3.13f);
-        mMonotronParams.cutoffStash.set(1204.f);
-        mMonotronParams.delayTimeStash.set(576.f);
-        mMonotronParams.feedbackStash.set(0.f);
-        mMonotronParams.lfoMode.set(0);
         
-        // Force send all parameter values via OSC
+        // Force send all parameter values via OSC so audio side is in sync
         mMonotronNotifier.notifyListeners(mMonotronParams.bypass.getFullAddress(), 
                                           mMonotronParams.bypass.get() ? 1.f : 0.f);
         mMonotronNotifier.notifyListeners(mMonotronParams.intensity.getFullAddress(), 
