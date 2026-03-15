@@ -173,6 +173,21 @@ public:
 };
 
 // ============================================================================
+// Quasi-bandlimited FM Saw for carrier
+// ============================================================================
+float quasibandlimitedFMSaw(float Hz, float SAMPLE_RATE, float numHarms = 0.433) {
+  static float phase = 0.f;
+  float w = Hz / SAMPLE_RATE;
+  phase += w;
+  phase = phase > 1.f ? 0.f : phase; // phasor 
+  float filter = powf(numHarms, 1.3f);
+  filter = 10.f * powf(0.5f - w, 4.f) * filter;
+  static float history = 0.f;
+  history = sinf((phase + history * filter) * 2 * M_PI);
+  return history;
+}
+
+// ============================================================================
 // MONOTRON PROCESSOR - Audio processing with parameter listening
 // ============================================================================
 
@@ -200,8 +215,11 @@ public:
     float freq = params->freqStash.get();
     float lfoIntensity = params->intensity.get();
     
-    osc.setFrequency(freq + (lfoValue * lfoIntensity * freq));
-    float oscOut = osc.processSample() * float(!params->keyboardMute.get());
+    float frequency = freq + (lfoValue * lfoIntensity * freq);
+    osc.setFrequency(frequency);
+    float carrier = quasibandlimitedFMSaw(frequency, 48000);
+    // float oscOut = osc.processSample() * float(!params->keyboardMute.get());
+    float oscOut = carrier * float(!params->keyboardMute.get());
     float s = delay.processSample(oscOut) * float(!params->bypass.get());
     sample += s;
   }
